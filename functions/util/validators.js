@@ -23,6 +23,7 @@ exports.validateSignUpData = (data) => {
   if (data.password !== data.confirmPassword)
     errors.confirmPassword = "Passwords must match";
   if (isEmpty(data.username)) errors.username = "Must not be empty";
+  if (isEmpty(data.fullName)) errors.fullName = "Must not be empty";
 
   return {
     errors,
@@ -41,4 +42,22 @@ exports.validateLogInData = (data) => {
     errors,
     valid: Object.keys(errors).length === 0 ? true : false,
   };
+};
+
+exports.reduceUserDetails = (data) => {
+  let userDetails = {};
+
+  //if data has attributes that are empty, dont add them to userDetails object
+  if (!isEmpty(data.bio.trim())) userDetails.bio = data.bio;
+
+  if (!isEmpty(data.website.trim())) {
+    //add http to website input if it is not entered by user
+    if (data.website.trim().substring(0, 4) !== "http") {
+      userDetails.website = `http://${data.website.trim()}`;
+    } else userDetails.website = data.website;
+  }
+
+  if (!isEmpty(data.location.trim())) userDetails.location = data.location;
+
+  return userDetails;
 };

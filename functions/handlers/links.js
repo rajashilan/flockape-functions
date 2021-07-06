@@ -5,6 +5,7 @@ const fetch = require("node-fetch");
 exports.getAllLinks = (req, res) => {
   //user accesses the link from the album, so /albumID/linkID
   //is there a better version to implement?
+  //***HOW DO I SHOW THE PARTICULAR ALBUM DETAILS IN LINKS PAGE?? */
 
   db.collection("links")
     .where("albumID", "==", req.body.albumID)
@@ -124,8 +125,9 @@ exports.createLinkFrontEnd = (req, res) => {
     linkDesc: req.body.linkDesc,
     linkImg: req.body.linkImg,
     linkDomain: req.body.linkDomain,
-    albumID: req.body.albumID, //manually for now?
-    username: req.body.username,
+    albumID: req.params.albumID,
+    username: req.body.username, //change to req.user after adding DBAuth
+    likeCount: 0,
     createdAt: new Date().getTime(),
   };
 
@@ -137,10 +139,8 @@ exports.createLinkFrontEnd = (req, res) => {
         if (newLink.username == doc.data().username) {
           db.collection("links")
             .add(newLink)
-            .then((doc) => {
-              res
-                .status(201)
-                .json({ message: `Link with ${doc.id} created successfully` });
+            .then(() => {
+              res.status(201).json(newLink); // return the newly added link to add to the UI
             })
             .catch((error) => {
               res.status(500).json({ error: "Something went wrong" });
@@ -150,7 +150,92 @@ exports.createLinkFrontEnd = (req, res) => {
           return res.status(400).json({ username: "Invalid username" });
         }
       } else {
-        return res.status(400).json({ album: "Album does not exist." });
+        return res.status(404).json({ album: "Album does not exist." });
       }
+    });
+};
+
+//like a link
+exports.likeLink = (req, res) => {
+  const likeLinkDocument = db
+    .collection("likesLink")
+    .where("username", "==", req.user.username)
+    .where("linkID", "==", req.params.linkID)
+    .limit(1);
+
+  const linkDocument = db.doc(`/links/${req.params.linkID}`);
+
+  let linkData;
+
+  linkDocument
+    .get()
+    .then((doc) => {
+      if (doc.exists) {
+        linkData = doc.data();
+        linkData.linkID = doc.id;
+
+        return likeLinkDocument.get();
+      } else {
+        return res.status(404).json({ error: "Link not found" });
+      }
+    })
+    .then((data) => {
+      if (data.empty) {
+        return db
+          .collection("likesLink")
+          .add({
+            linkID: req.params.linkID,
+            username: req.user.username,
+            createdAt: new Date().getTime(),
+          })
+          .then(() => {
+            linkData.likeCount++;
+            return linkDocument.update({ likeCount: linkData.likeCount });
+          })
+          .then(() => {
+            return res.json({ linkData });
+          });
+      } else {
+        //the user has already liked the link (handle unlike here)
+        db.doc(`/likesLink/${data.docs[0].id}`)
+          .delete()
+          .then(() => {
+            linkData.likeCount--;
+            return linkDocument.update({ likeCount: linkData.likeCount });
+          })
+          .then(() => {
+            res.json(linkData);
+          });
+      }
+    })
+    .catch((error) => {
+      console.error(error);
+      res.status(500).json({ error: error.code });
+    });
+};
+
+//delete link
+exports.deleteLink = (req, res) => {
+  const linkDocument = db.doc(`/links/${req.params.linkID}`);
+
+  linkDocument
+    .get()
+    .then((doc) => {
+      if (!doc.exists) {
+        return res.status(404).json({ error: "Link not found" });
+      }
+
+      if (doc.data().username !== req.user.username) {
+        return res.status(403).json({ error: "Unauthorized" });
+      } else {
+        return linkDocument.delete();
+      }
+    })
+    .then(() => {
+      res.json({ message: "Link deleted successfully" });
+    })
+    .catch((error) => {
+      console.error(error);
+      return res.status(500).json({ error: error.code });
     });
 };

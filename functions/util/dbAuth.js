@@ -1,5 +1,4 @@
-const { admin } = require("./admin");
-const { db } = require("../util/admin");
+const { admin, db } = require("./admin");
 
 module.exports = (req, res, next) => {
   let idToken;
@@ -21,7 +20,6 @@ module.exports = (req, res, next) => {
     .verifyIdToken(idToken)
     .then((decodedToken) => {
       req.user = decodedToken;
-      console.log(decodedToken);
 
       //get the username
       return db
@@ -32,6 +30,7 @@ module.exports = (req, res, next) => {
     })
     .then((data) => {
       req.user.username = data.docs[0].data().username;
+      req.user.profileImg = data.docs[0].data().profileImg;
       return next();
     })
     .catch((error) => {
