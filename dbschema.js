@@ -10,6 +10,8 @@ let db = {
       location: "New York, USA", //optional
       website: "www.youtube.com/raja123", //optional
       createdAt: 341234352342342,
+      birthday: "5/7/1999",
+      age: "22", //(calculated using birthday)
     },
   ],
 
@@ -22,6 +24,7 @@ let db = {
       likeCount: 5, //optional
       viewCount: 10, //optional
       createdAt: 1624717777908,
+      security: "private | public",
     },
   ],
 

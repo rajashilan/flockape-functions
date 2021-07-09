@@ -9,6 +9,8 @@ const {
   validateSignUpData,
   validateLogInData,
   reduceUserDetails,
+  validatePasswordReset,
+  validatePasswordUpdate,
 } = require("../util/validators");
 
 exports.signup = (req, res) => {
@@ -18,11 +20,19 @@ exports.signup = (req, res) => {
     confirmPassword: req.body.confirmPassword,
     username: req.body.username,
     fullName: req.body.fullName,
+    birthday: req.body.birthday,
   };
 
   const { valid, errors } = validateSignUpData(newUser);
 
   if (!valid) return res.status(400).json(errors);
+
+  //validate age (>13)
+  const dateSplit = newUser.birthday.split("/");
+  const year = parseInt(dateSplit[2], 10);
+  var dateCheck = new Date();
+  if (dateCheck.getFullYear() - year < 13)
+    return res.status(400).json({ birthday: "Age must be 13 or older" });
 
   const noImg = "no-img-profile.png";
 
@@ -54,13 +64,20 @@ exports.signup = (req, res) => {
         profileImg: `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${noImg}?alt=media`,
         userID,
         fullName: newUser.fullName,
+        birthday: newUser.birthday,
       };
 
       //create a new document for the user under the 'users' collection using the data recieved
       return db.doc(`/users/${newUser.username}`).set(userCredentials);
     })
     .then(() => {
-      return res.status(201).json({ token });
+      firebase
+        .auth()
+        .currentUser.sendEmailVerification()
+        .then(() => {
+          //return res.status(201).json({ token });
+          return res.status(201).json({ message: "Email verification sent" });
+        });
     })
     .catch((error) => {
       console.error(error);
@@ -280,4 +297,70 @@ exports.uploadProfileImage = (req, res) => {
     });
   });
   busboy.end(req.rawBoy);
+};
+
+//reset forgotten password through email link
+exports.resetPassword = (req, res) => {
+  const email = req.body.email;
+
+  const { valid, errors } = validatePasswordReset(email);
+
+  if (!valid) return res.status(400).json(errors);
+
+  firebase
+    .auth()
+    .sendPasswordResetEmail(email)
+    .then(() => {
+      return res
+        .status(200)
+        .json({ message: "Reset link sent to your email successfully" });
+    })
+    .catch((error) => {
+      var errorCode = error.code;
+      var errorMessage = error.message;
+      console.error(errorCode);
+      return res.status(500).json({ message: "Something went wrong" });
+    });
+};
+
+//update password
+exports.changePassword = (req, res) => {
+  const newPassword = {
+    oldPassword: req.body.oldPassword,
+    password: req.body.password,
+    confirmPassword: req.body.confirmPassword,
+  };
+
+  const { valid, errors } = validatePasswordUpdate(newPassword);
+
+  if (!valid) return res.status(400).json(errors);
+
+  const user = firebase.auth().currentUser;
+
+  var credential = firebase.auth.EmailAuthProvider.credential(
+    firebase.auth().currentUser.email,
+    newPassword.oldPassword
+  );
+
+  user
+    .reauthenticateWithCredential(credential)
+    .then(() => {
+      user
+        .updatePassword(newPassword.password)
+        .then(() => {
+          return res
+            .status(200)
+            .json({ message: "Password updated successfully" });
+        })
+        .catch((error) => {
+          console.error(error);
+          return res.status(500).json({ error: "Failed to update password" });
+        });
+    })
+    .catch((error) => {
+      console.error(error);
+      return res
+        .status(400)
+        .json({ message: "Invalid password. Please try again" });
+    });
 };

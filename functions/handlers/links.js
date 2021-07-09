@@ -147,7 +147,7 @@ exports.createLinkFrontEnd = (req, res) => {
               console.error(error);
             });
         } else {
-          return res.status(400).json({ username: "Invalid username" });
+          return res.status(403).json({ username: "Unauthorized" });
         }
       } else {
         return res.status(404).json({ album: "Album does not exist." });
@@ -211,6 +211,58 @@ exports.likeLink = (req, res) => {
     .catch((error) => {
       console.error(error);
       res.status(500).json({ error: error.code });
+    });
+};
+
+//get the user's liked links
+exports.getLikedLinks = (req, res) => {
+  //first, get the links ids from the user's liked albums collection
+  //then, get the links for the ids from the albums collection
+
+  likedLinksID = [];
+  links = [];
+
+  db.collection("likesLink")
+    .where("username", "==", req.user.username)
+    .get()
+    .then((data) => {
+      data.forEach((doc) => {
+        likedLinksID.push(doc.data().linkID);
+      });
+
+      return likedLinksID;
+    })
+    .then((linkID) => {
+      //if there are no liked links id, there are no liked links for the user, so return
+      if (linkID.length == 0) {
+        return res.status(404).json({ message: "No liked links" });
+      }
+
+      linkID.forEach((id) => {
+        db.doc(`/links/${id}`)
+          .get()
+          .then((doc) => {
+            links.push({
+              linkID: doc.id,
+              albumTitle: doc.data().albumTitle,
+              username: doc.data().username,
+              albumImg: doc.data().albumImg,
+              security: doc.data().security,
+              likeCount: doc.data().likeCount,
+              viewCount: doc.data().viewCount,
+              profileImg: doc.data().profileImg,
+              createdAt: doc.data().createdAt,
+            });
+          })
+          .then(() => {
+            //return only after reaching the end of the for loop
+            if (id == linkID[linkID.length - 1]) return res.json(links);
+          });
+      });
+    })
+    .catch((error) => {
+      console.error(error);
+      return res.status(500).json({ message: "Error getting liked albums" });
     });
 };
 

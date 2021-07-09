@@ -9,9 +9,11 @@ const { db } = require("./util/admin");
 const {
   getAllAlbums,
   getAnAlbum,
+  editAlbumDetails,
   createAnAlbum,
   uploadAlbumImage,
   likeAlbum,
+  getLikedAlbums,
   deleteAlbum,
 } = require("./handlers/albums");
 const {
@@ -21,6 +23,7 @@ const {
   fetchImage,
   createLinkFrontEnd,
   likeLink,
+  getLikedLinks,
   deleteLink,
 } = require("./handlers/links");
 const {
@@ -31,23 +34,30 @@ const {
   getAuthenticatedUser,
   getUserDetails,
   markNotificationsRead,
+  resetPassword,
+  changePassword,
 } = require("./handlers/users");
+
 const DBAuth = require("./util/dbAuth");
+const DBSelectedAuth = require("./util/dbSelectedAuth");
 
 app.use(cors());
 
 //image will be taken from req.body.albumID
-app.get("/getAlbums", getAllAlbums); //gets all the albums for the user
-app.get("/album/:albumID", getAnAlbum); //get a particular album and its links
+app.get("/albums", DBAuth, getAllAlbums); //gets all the albums for the user
+app.post("/album/:albumID", DBAuth, editAlbumDetails); //edit album details
+app.get("/album/:albumID", DBSelectedAuth, getAnAlbum); //get a particular album and its links
 app.post("/createAlbum", DBAuth, createAnAlbum);
-app.post("/album/image", DBAuth, uploadAlbumImage);
+app.post("/album/:albumID/image", DBAuth, uploadAlbumImage); //user can use this to change album image even later (editing)
 app.get("/album/:albumID/like", DBAuth, likeAlbum); //like and unlike handled in the same route
+app.get("/getLikedAlbums", DBAuth, getLikedAlbums); //get a user's liked albums
 app.delete("/album/:albumID", DBAuth, deleteAlbum);
 
 //link routes REMEMBER TO ADD IMAGE----------
-app.post("/getLinks", getAllLinks); //gets all the links for the album //not to be used in production
+app.post("/getLinks", DBAuth, getAllLinks); //gets all the links for the album //not to be used in production
 app.post("/createLink", DBAuth, createALink);
 app.get("/link/:linkID/like", DBAuth, likeLink); //like and unlike handled in the same route
+app.get("/getLikedLinks", DBAuth, getLikedLinks); //get a user's liked albums
 app.delete("/link/:linkID", DBAuth, deleteLink);
 
 //******USER HAS TO BE LOGGED IN AND AUTHENTICATED INCLUDING ALBUM ID TO BE ABLE TO REQUEST FOR URL DATA*******
@@ -63,6 +73,8 @@ app.post("/user", DBAuth, addUserDetails);
 app.get("/user", DBAuth, getAuthenticatedUser);
 app.get("/user/:username", getUserDetails);
 app.post("/notifications", DBAuth, markNotificationsRead);
+app.get("/password/reset", resetPassword); //forgot password
+app.post("/password/update", DBAuth, changePassword); //update password
 
 exports.api = functions.region("asia-southeast1").https.onRequest(app);
 

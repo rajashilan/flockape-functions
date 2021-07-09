@@ -1,9 +1,13 @@
 const { db } = require("../util/admin");
 const config = require("../util/config");
 
+const { validateAlbumTitle } = require("../util/validators");
+
+//get all albums for the user
 exports.getAllAlbums = (req, res) => {
   db.collection("albums")
     .orderBy("createdAt", "desc")
+    .where("username", "==", req.user.username)
     .get()
     .then((data) => {
       let albums = [];
@@ -13,6 +17,10 @@ exports.getAllAlbums = (req, res) => {
           albumTitle: doc.data().albumTitle,
           username: doc.data().username,
           albumImg: doc.data().albumImg,
+          security: doc.data().security,
+          likeCount: doc.data().likeCount,
+          viewCount: doc.data().viewCount,
+          profileImg: doc.data().profileImg,
           createdAt: doc.data().createdAt,
         });
       });
@@ -21,30 +29,41 @@ exports.getAllAlbums = (req, res) => {
     .catch((error) => console.error(error));
 };
 
+//get an album
 exports.getAnAlbum = (req, res) => {
-  console.log(req.params.albumID);
   let albumData = {};
 
   //get the particular album's data
   db.doc(`/albums/${req.params.albumID}`)
     .get()
     .then((doc) => {
+      //make sure album exists
       if (!doc.exists) {
         return res.status(404).json({ error: "Album not found" });
+      }
+
+      //if album is private and another user is accessing, deny access
+      if (
+        doc.data().security == "private" &&
+        req.user.username !== doc.data().username
+      ) {
+        return res.status(403).json({ message: "Unauthorized" });
       }
 
       albumData = doc.data();
       albumData.albumID = doc.id;
 
-      //******increment viewCount if the current username is not same as the album's username?????*****
-      albumData.viewCount++;
-      db.doc(`/albums/${req.params.albumID}`)
-        .update({
-          viewCount: albumData.viewCount,
-        })
-        .catch((error) => {
-          console.error(error);
-        });
+      //increment viewCount if the current username is not same as the album's username
+      if (req.user.username !== albumData.username) {
+        albumData.viewCount++;
+        db.doc(`/albums/${req.params.albumID}`)
+          .update({
+            viewCount: albumData.viewCount,
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+      }
 
       //get the album's links data
       return db
@@ -66,11 +85,46 @@ exports.getAnAlbum = (req, res) => {
     });
 };
 
+//edit an album's details
+exports.editAlbumDetails = (req, res) => {
+  const albumDetails = {
+    albumTitle: req.body.albumTitle,
+    security: req.body.security,
+  };
+
+  const { valid, errors } = validateAlbumTitle(albumDetails.albumTitle);
+
+  if (!valid) return res.status(400).json(errors);
+
+  db.doc(`/albums/${req.params.albumID}`)
+    .get()
+    .then((doc) => {
+      if (!doc.exists) {
+        return res.status(404).json({ error: "Album not found" });
+      }
+
+      if (doc.data().username !== req.user.username) {
+        return res.status(403).json({ error: "Unauthorized" });
+      } else {
+        return db.doc(`/albums/${req.params.albumID}`).update(albumDetails);
+      }
+    })
+    .then(() => {
+      return res.json({ message: "Details added successfully" });
+    })
+    .catch((error) => {
+      console.error(error);
+      return res.status(500).json({ error: error.code });
+    });
+};
+
+//create a new album
 exports.createAnAlbum = (req, res) => {
   const noImg = "no-img-album.png";
 
   const newAlbum = {
     albumTitle: req.body.albumTitle,
+    security: req.body.security,
     username: req.user.username,
     profileImg: req.user.profileImg,
     albumImg: `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${noImg}?alt=media`,
@@ -151,6 +205,58 @@ exports.likeAlbum = (req, res) => {
     });
 };
 
+//get the user's liked albums
+exports.getLikedAlbums = (req, res) => {
+  //first, get the album ids from the user's liked albums collection
+  //then, get the albums for the ids from the albums collection
+
+  likedAlbumsID = [];
+  albums = [];
+
+  db.collection("likesAlbum")
+    .where("username", "==", req.user.username)
+    .get()
+    .then((data) => {
+      data.forEach((doc) => {
+        likedAlbumsID.push(doc.data().albumID);
+      });
+
+      return likedAlbumsID;
+    })
+    .then((albumID) => {
+      //if there are no liked albums id, there are no liked albums for the user, so return
+      if (albumID.length == 0) {
+        return res.status(404).json({ message: "No liked albums" });
+      }
+
+      albumID.forEach((id) => {
+        db.doc(`/albums/${id}`)
+          .get()
+          .then((doc) => {
+            albums.push({
+              albumID: doc.id,
+              albumTitle: doc.data().albumTitle,
+              username: doc.data().username,
+              albumImg: doc.data().albumImg,
+              security: doc.data().security,
+              likeCount: doc.data().likeCount,
+              viewCount: doc.data().viewCount,
+              profileImg: doc.data().profileImg,
+              createdAt: doc.data().createdAt,
+            });
+          })
+          .then(() => {
+            //return only after reaching the end of the for loop
+            if (id == albumID[albumID.length - 1]) return res.json(albums);
+          });
+      });
+    })
+    .catch((error) => {
+      console.error(error);
+      return res.status(500).json({ message: "Error getting liked albums" });
+    });
+};
+
 //upload album image
 //image will be taken from req.body.albumID
 exports.uploadAlbumImage = (req, res) => {
@@ -187,7 +293,7 @@ exports.uploadAlbumImage = (req, res) => {
         .then(() => {
           const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imageFileName}?alt=media`;
           return db
-            .doc(`/albums/${req.body.albumID}`)
+            .doc(`/albums/${req.params.albumID}`)
             .update({ albumImg: imageUrl });
         })
         .then(() => {
@@ -206,9 +312,9 @@ exports.uploadAlbumImage = (req, res) => {
 //* deleting an album must also delete all the links along with it
 exports.deleteAlbum = (req, res) => {
   const albumDocument = db.doc(`/albums/${req.params.albumID}`);
-  const linkDocument = db
-    .collection("links")
-    .where("albumID", "==", req.params.albumID);
+  // const linkDocument = db
+  //   .collection("links")
+  //   .where("albumID", "==", req.params.albumID);
 
   albumDocument
     .get()

@@ -19,8 +19,12 @@ module.exports = (req, res, next) => {
     .auth()
     .verifyIdToken(idToken)
     .then((decodedToken) => {
-      req.user = decodedToken;
+      // //check if user is verified
+      // if (!decodedToken.email_verified) {
+      //   return res.status(403).json({ message: "Please verify your email" });
+      // }
 
+      req.user = decodedToken;
       //get the username
       return db
         .collection("users")
@@ -31,6 +35,7 @@ module.exports = (req, res, next) => {
     .then((data) => {
       req.user.username = data.docs[0].data().username;
       req.user.profileImg = data.docs[0].data().profileImg;
+      req.user.email = data.docs[0].data().email;
       return next();
     })
     .catch((error) => {
