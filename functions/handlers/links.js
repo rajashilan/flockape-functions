@@ -131,6 +131,14 @@ exports.createLinkFrontEnd = (req, res) => {
     createdAt: new Date().getTime(),
   };
 
+  if (
+    newLink.linkTitle.trim() == "" ||
+    newLink.linkTitle == null ||
+    newLink.linkDesc.trim() == "" ||
+    newLink.linkDesc == null
+  )
+    return res.status(400).json({ message: "Couldn't extract link info" });
+
   //check if username is the same as the albumID username before uploading
   db.doc(`/albums/${newLink.albumID}`)
     .get()

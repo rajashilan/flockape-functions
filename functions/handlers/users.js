@@ -7,6 +7,7 @@ firebase.initializeApp(config);
 
 const {
   validateSignUpData,
+  capitaliseName,
   validateLogInData,
   reduceUserDetails,
   validatePasswordReset,
@@ -33,6 +34,9 @@ exports.signup = (req, res) => {
   var dateCheck = new Date();
   if (dateCheck.getFullYear() - year < 13)
     return res.status(400).json({ birthday: "Age must be 13 or older" });
+
+  //capitalise user's full name
+  newUser.fullName = capitaliseName(newUser.fullName);
 
   const noImg = "no-img-profile.png";
 
@@ -123,6 +127,11 @@ exports.login = (req, res) => {
 //add user details
 exports.addUserDetails = (req, res) => {
   let userDetails = reduceUserDetails(req.body);
+
+  if (userDetails.hasOwnProperty("fullName")) {
+    //capitalise user's full name
+    userDetails.fullName = capitaliseName(userDetails.fullName);
+  }
 
   db.doc(`/users/${req.user.username}`)
     .update(userDetails)

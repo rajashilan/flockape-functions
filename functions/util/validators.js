@@ -10,6 +10,12 @@ const isEmail = (email) => {
   else return false;
 };
 
+const isStrongPassword = (password) => {
+  const regEx = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,20}$/;
+  if (password.match(regEx)) return true;
+  else return false;
+};
+
 const isDate = (date) => {
   const dateFormat =
     /^(0?[1-9]|[12][0-9]|3[01])[\/\-](0?[1-9]|1[012])[\/\-]\d{4}$/;
@@ -34,9 +40,9 @@ const isDate = (date) => {
 
       // Adjust for leap years
       if (year % 400 == 0 || (year % 100 != 0 && year % 4 == 0))
-        monthLength[1] = 29;
+        monthsLength[1] = 29;
 
-      if (day > 0 && day >= monthsLength[month - 1]) {
+      if (day > 0 && day <= monthsLength[month - 1]) {
         return true;
       } else {
         return false;
@@ -57,11 +63,14 @@ exports.validateSignUpData = (data) => {
   if (isEmpty(data.password)) errors.password = "Must not be empty";
   if (data.password !== data.confirmPassword)
     errors.confirmPassword = "Passwords must match";
+  if (!isStrongPassword(data.password))
+    errors.password =
+      "Password must be within 6-20 characters, and must contain at least 1 numeric digit, 1 lowercase letter, and 1 uppercase letter.";
   if (isEmpty(data.username)) errors.username = "Must not be empty";
   if (isEmpty(data.fullName)) errors.fullName = "Must not be empty";
   if (isEmpty(data.birthday)) {
     errors.birthday = "Must not be empty";
-  } else if (isDate(data.birthday)) {
+  } else if (!isDate(data.birthday)) {
     errors.birthday = "Invalid date";
   }
 
@@ -98,6 +107,8 @@ exports.reduceUserDetails = (data) => {
   }
 
   if (!isEmpty(data.location.trim())) userDetails.location = data.location;
+
+  if (!isEmpty(data.fullName.trim())) userDetails.fullName = data.fullName;
 
   return userDetails;
 };
@@ -140,4 +151,20 @@ exports.validateAlbumTitle = (albumTitle) => {
     errors,
     valid: Object.keys(errors).length === 0 ? true : false,
   };
+};
+
+exports.capitaliseName = (fullName) => {
+  if (fullName.indexOf(" ") >= 0) {
+    const names = fullName.split(" ");
+
+    for (let i = 0; i < names.length; i++) {
+      names[i] = names[i][0].toUpperCase() + names[i].substr(1);
+    }
+
+    fullName = names.join(" ");
+  } else {
+    fullName = fullName.charAt(0).toUpperCase() + fullName.slice(1);
+  }
+
+  return fullName;
 };

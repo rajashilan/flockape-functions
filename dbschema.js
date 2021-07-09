@@ -2,13 +2,13 @@ let db = {
   users: [
     {
       username: "raja123",
-      fullName: "Raja Shilan",
+      fullName: "Raja Shilan", //editable
       email: "rajashilan@gmail.com",
-      bio: "This is my bio", //optional
-      profileImg: "https://firebasestorage/23we23423e2e2e.png", //optional (default uploaded first)
+      bio: "This is my bio", //optional //editable
+      profileImg: "https://firebasestorage/23we23423e2e2e.png", //optional (default uploaded first) //editable
       userID: "234asdnask23das",
-      location: "New York, USA", //optional
-      website: "www.youtube.com/raja123", //optional
+      location: "New York, USA", //optional //editable
+      website: "www.youtube.com/raja123", //optional //editable
       createdAt: 341234352342342,
       birthday: "5/7/1999",
       age: "22", //(calculated using birthday)
