@@ -57,7 +57,7 @@ app.delete("/album/:albumID", DBAuth, deleteAlbum);
 app.post("/getLinks", DBAuth, getAllLinks); //gets all the links for the album //not to be used in production
 app.post("/createLink", DBAuth, createALink);
 app.get("/link/:linkID/like", DBAuth, likeLink); //like and unlike handled in the same route
-app.get("/getLikedLinks", DBAuth, getLikedLinks); //get a user's liked albums
+app.get("/getLikedLinks", DBAuth, getLikedLinks); //get a user's liked links
 app.delete("/link/:linkID", DBAuth, deleteLink);
 
 //******USER HAS TO BE LOGGED IN AND AUTHENTICATED INCLUDING ALBUM ID TO BE ABLE TO REQUEST FOR URL DATA*******

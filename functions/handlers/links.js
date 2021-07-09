@@ -137,6 +137,9 @@ exports.createLinkFrontEnd = (req, res) => {
     .then((doc) => {
       if (doc.exists) {
         if (newLink.username == doc.data().username) {
+          //add the link security the same as the album's
+          newLink.security = doc.data().security;
+
           db.collection("links")
             .add(newLink)
             .then(() => {
@@ -219,8 +222,9 @@ exports.getLikedLinks = (req, res) => {
   //first, get the links ids from the user's liked albums collection
   //then, get the links for the ids from the albums collection
 
-  likedLinksID = [];
-  links = [];
+  let likedLinksID = [];
+  let links = [];
+  let index = 0;
 
   db.collection("likesLink")
     .where("username", "==", req.user.username)
@@ -242,21 +246,28 @@ exports.getLikedLinks = (req, res) => {
         db.doc(`/links/${id}`)
           .get()
           .then((doc) => {
-            links.push({
-              linkID: doc.id,
-              albumTitle: doc.data().albumTitle,
-              username: doc.data().username,
-              albumImg: doc.data().albumImg,
-              security: doc.data().security,
-              likeCount: doc.data().likeCount,
-              viewCount: doc.data().viewCount,
-              profileImg: doc.data().profileImg,
-              createdAt: doc.data().createdAt,
-            });
+            if (
+              doc.data().security == "private" &&
+              doc.data().username !== req.user.username
+            ) {
+              //dont push anything
+            } else {
+              links.push({
+                linkID: doc.id,
+                linkTitle: doc.data().linkTitle,
+                linkDesc: doc.data().linkDesc,
+                linkImg: doc.data().linkImg,
+                username: doc.data().username,
+                likeCount: doc.data().likeCount,
+                createdAt: doc.data().createdAt,
+                security: doc.data().security,
+              });
+            }
+            index++;
           })
           .then(() => {
             //return only after reaching the end of the for loop
-            if (id == linkID[linkID.length - 1]) return res.json(links);
+            if (index == linkID.length) return res.json(links);
           });
       });
     })

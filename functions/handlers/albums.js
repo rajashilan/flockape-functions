@@ -1,3 +1,4 @@
+const { onCall } = require("firebase-functions/lib/providers/https");
 const { db } = require("../util/admin");
 const config = require("../util/config");
 
@@ -45,7 +46,7 @@ exports.getAnAlbum = (req, res) => {
       //if album is private and another user is accessing, deny access
       if (
         doc.data().security == "private" &&
-        req.user.username !== doc.data().username
+        doc.data().username !== req.user.username
       ) {
         return res.status(403).json({ message: "Unauthorized" });
       }
@@ -92,6 +93,8 @@ exports.editAlbumDetails = (req, res) => {
     security: req.body.security,
   };
 
+  let securityChanged = false;
+
   const { valid, errors } = validateAlbumTitle(albumDetails.albumTitle);
 
   if (!valid) return res.status(400).json(errors);
@@ -106,7 +109,37 @@ exports.editAlbumDetails = (req, res) => {
       if (doc.data().username !== req.user.username) {
         return res.status(403).json({ error: "Unauthorized" });
       } else {
-        return db.doc(`/albums/${req.params.albumID}`).update(albumDetails);
+        //check if the security of the album has changed
+        doc.data().security !== albumDetails.security
+          ? (securityChanged = true)
+          : (securityChanged = false);
+        db.doc(`/albums/${req.params.albumID}`)
+          .update(albumDetails)
+          .then(() => {
+            //album updated
+          });
+        return securityChanged;
+      }
+    })
+    .then((security) => {
+      //if it has, update the links under the album to match the new security settings
+      if (security) {
+        console.log("Updating link security");
+        return db
+          .collection("links")
+          .where("albumID", "==", req.params.albumID)
+          .get()
+          .then((data) => {
+            data.forEach((doc) => {
+              db.doc(`/links/${doc.id}`)
+                .update({
+                  security: albumDetails.security,
+                })
+                .then(() => {
+                  //links updated
+                });
+            });
+          });
       }
     })
     .then(() => {
@@ -210,8 +243,9 @@ exports.getLikedAlbums = (req, res) => {
   //first, get the album ids from the user's liked albums collection
   //then, get the albums for the ids from the albums collection
 
-  likedAlbumsID = [];
-  albums = [];
+  let likedAlbumsID = [];
+  let albums = [];
+  let index = 0;
 
   db.collection("likesAlbum")
     .where("username", "==", req.user.username)
@@ -233,21 +267,29 @@ exports.getLikedAlbums = (req, res) => {
         db.doc(`/albums/${id}`)
           .get()
           .then((doc) => {
-            albums.push({
-              albumID: doc.id,
-              albumTitle: doc.data().albumTitle,
-              username: doc.data().username,
-              albumImg: doc.data().albumImg,
-              security: doc.data().security,
-              likeCount: doc.data().likeCount,
-              viewCount: doc.data().viewCount,
-              profileImg: doc.data().profileImg,
-              createdAt: doc.data().createdAt,
-            });
+            if (
+              doc.data().security == "private" &&
+              doc.data().username !== req.user.username
+            ) {
+              //dont push anything
+            } else {
+              albums.push({
+                albumID: doc.id,
+                albumTitle: doc.data().albumTitle,
+                username: doc.data().username,
+                albumImg: doc.data().albumImg,
+                likeCount: doc.data().likeCount,
+                viewCount: doc.data().viewCount,
+                profileImg: doc.data().profileImg,
+                createdAt: doc.data().createdAt,
+                security: doc.data().security,
+              });
+            }
+            index++;
           })
           .then(() => {
             //return only after reaching the end of the for loop
-            if (id == albumID[albumID.length - 1]) return res.json(albums);
+            if (index == albumID.length) return res.json(albums);
           });
       });
     })
@@ -262,6 +304,16 @@ exports.getLikedAlbums = (req, res) => {
 exports.uploadAlbumImage = (req, res) => {
   let imageFileName;
   let imageToBeUploaded = {};
+
+  db.doc(`/albums/${req.params.albumID}`)
+    .get()
+    .then((doc) => {
+      if (doc.data().username !== req.user.username)
+        return res.status(403).json({ message: "Unauthorized" });
+    })
+    .catch((error) => {
+      console.error(error);
+    });
 
   busboy.on("file", (fieldname, file, filename, encoding, mimetype) => {
     if (mimetype !== "image/jpeg" && mimetype !== "image/png") {
