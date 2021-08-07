@@ -48,7 +48,7 @@ exports.getAnAlbum = (req, res) => {
         doc.data().security == "private" &&
         doc.data().username !== req.user.username
       ) {
-        return res.status(403).json({ message: "Unauthorized" });
+        return res.status(403).json({ general: "Unauthorized" });
       }
 
       albumData = doc.data();
@@ -166,6 +166,12 @@ exports.createAnAlbum = (req, res) => {
     viewCount: 1,
   };
 
+  //make sure user is verified before allowing user to create an album
+  if (!req.user.email_verified)
+    return res
+      .status(403)
+      .json({ general: "Please verify your email before creating an album." });
+
   db.collection("albums")
     .add(newAlbum)
     .then((doc) => {
@@ -174,7 +180,7 @@ exports.createAnAlbum = (req, res) => {
       res.json(resAlbum);
     })
     .catch((error) => {
-      res.status(500).json({ error: "something went wrong" });
+      res.status(500).json({ error: "Something went wrong" });
       console.error(error);
     });
 };
@@ -295,7 +301,7 @@ exports.getLikedAlbums = (req, res) => {
     })
     .catch((error) => {
       console.error(error);
-      return res.status(500).json({ message: "Error getting liked albums" });
+      return res.status(500).json({ general: "Error getting liked albums" });
     });
 };
 
@@ -309,7 +315,7 @@ exports.uploadAlbumImage = (req, res) => {
     .get()
     .then((doc) => {
       if (doc.data().username !== req.user.username)
-        return res.status(403).json({ message: "Unauthorized" });
+        return res.status(403).json({ general: "Unauthorized" });
     })
     .catch((error) => {
       console.error(error);

@@ -47,7 +47,7 @@ app.use(cors());
 app.get("/albums", DBAuth, getAllAlbums); //gets all the albums for the user
 app.post("/album/:albumID", DBAuth, editAlbumDetails); //edit album details
 app.get("/album/:albumID", DBSelectedAuth, getAnAlbum); //get a particular album and its links
-app.post("/createAlbum", DBAuth, createAnAlbum);
+app.post("/createAlbum", DBAuth, createAnAlbum); //-------------------------------------------------------verification required
 app.post("/album/:albumID/image", DBAuth, uploadAlbumImage); //user can use this to change album image even later (editing)
 app.get("/album/:albumID/like", DBAuth, likeAlbum); //like and unlike handled in the same route
 app.get("/getLikedAlbums", DBAuth, getLikedAlbums); //get a user's liked albums
@@ -61,9 +61,9 @@ app.get("/getLikedLinks", DBAuth, getLikedLinks); //get a user's liked links
 app.delete("/link/:linkID", DBAuth, deleteLink);
 
 //******USER HAS TO BE LOGGED IN AND AUTHENTICATED INCLUDING ALBUM ID TO BE ABLE TO REQUEST FOR URL DATA*******
-app.post("/fetchUrl", fetchUrl); //route to retrieve and send back url data
-app.post("/fetchImage", fetchImage); //route to retrieve and send image blob data
-app.post("/album/:albumID/link", createLinkFrontEnd); //route to upload data and respond to front end
+app.post("/fetchUrl", DBAuth, fetchUrl); //route to retrieve and send back url data
+app.post("/fetchImage", DBAuth, fetchImage); //route to retrieve and send image blob data
+app.post("/album/:albumID/link", DBAuth, createLinkFrontEnd); //route to upload data and respond to front end
 
 //users routes----------
 app.post("/signup", signup);

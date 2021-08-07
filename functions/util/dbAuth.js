@@ -19,9 +19,9 @@ module.exports = (req, res, next) => {
     .auth()
     .verifyIdToken(idToken)
     .then((decodedToken) => {
-      // //check if user is verified
+      //check if user is verified
       // if (!decodedToken.email_verified) {
-      //   return res.status(403).json({ message: "Please verify your email" });
+      //   return res.status(403).json({ general: "Please verify your email" });
       // }
 
       req.user = decodedToken;

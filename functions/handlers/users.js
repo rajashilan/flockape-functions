@@ -124,7 +124,7 @@ exports.login = (req, res) => {
     });
 };
 
-//add user details
+//edit user details (name, bio, location, website)
 exports.addUserDetails = (req, res) => {
   let userDetails = reduceUserDetails(req.body);
 
@@ -194,6 +194,7 @@ exports.getAuthenticatedUser = (req, res) => {
 };
 
 //get any user's details, along with their albums
+//private albums should not be shown at all since any user can see this info
 exports.getUserDetails = (req, res) => {
   let userData = {};
 
@@ -205,6 +206,7 @@ exports.getUserDetails = (req, res) => {
         return db
           .collection("albums")
           .where("username", "==", req.params.username)
+          .where("security", "==", "public")
           .orderBy("createdAt", "desc")
           .get();
       } else {
@@ -328,7 +330,7 @@ exports.resetPassword = (req, res) => {
       var errorCode = error.code;
       var errorMessage = error.message;
       console.error(errorCode);
-      return res.status(500).json({ message: "Something went wrong" });
+      return res.status(500).json({ general: "Something went wrong" });
     });
 };
 
@@ -370,6 +372,6 @@ exports.changePassword = (req, res) => {
       console.error(error);
       return res
         .status(400)
-        .json({ message: "Invalid password. Please try again" });
+        .json({ general: "Invalid password. Please try again" });
     });
 };

@@ -2,6 +2,8 @@ const { db } = require("../util/admin");
 const linkPreviewGenerator = require("link-preview-generator");
 const fetch = require("node-fetch");
 
+const { validateLink } = require("../util/validators");
+
 exports.getAllLinks = (req, res) => {
   //user accesses the link from the album, so /albumID/linkID
   //is there a better version to implement?
@@ -80,13 +82,26 @@ exports.createALink = (req, res) => {
 exports.fetchUrl = (req, res) => {
   //let url = req.body.url;
   let url = req.query.search;
+
+  const { valid, errors } = validateLink(url);
+
+  if (!valid) return res.status(400).json(errors);
+
   const startLinkPreview = async function scrape(url) {
     try {
       previewData = await linkPreviewGenerator(url);
-      console.log(previewData);
-      console.log(
-        "successfully retrieved url data in nodejs...passing to front-end"
-      );
+      // console.log(previewData);
+      // console.log(
+      //   "successfully retrieved url data in nodejs...passing to front-end"
+      // );
+      if (
+        previewData.title.trim() == "" ||
+        previewData.title == null ||
+        previewData.description.trim() == "" ||
+        previewData.description == null
+      )
+        return res.status(400).json({ general: "Couldn't extract link info" });
+
       return res.status(200).json(previewData);
     } catch (e) {
       console.log("error", e);
@@ -126,7 +141,7 @@ exports.createLinkFrontEnd = (req, res) => {
     linkImg: req.body.linkImg,
     linkDomain: req.body.linkDomain,
     albumID: req.params.albumID,
-    username: req.body.username, //change to req.user after adding DBAuth
+    username: req.user.username, //change to req.user after adding DBAuth
     likeCount: 0,
     createdAt: new Date().getTime(),
   };
@@ -137,7 +152,7 @@ exports.createLinkFrontEnd = (req, res) => {
     newLink.linkDesc.trim() == "" ||
     newLink.linkDesc == null
   )
-    return res.status(400).json({ message: "Couldn't extract link info" });
+    return res.status(400).json({ general: "Couldn't extract link info" });
 
   //check if username is the same as the albumID username before uploading
   db.doc(`/albums/${newLink.albumID}`)
@@ -281,7 +296,7 @@ exports.getLikedLinks = (req, res) => {
     })
     .catch((error) => {
       console.error(error);
-      return res.status(500).json({ message: "Error getting liked albums" });
+      return res.status(500).json({ general: "Error getting liked albums" });
     });
 };
 

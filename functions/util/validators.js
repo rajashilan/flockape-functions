@@ -10,6 +10,19 @@ const isEmail = (email) => {
   else return false;
 };
 
+const isUsername = (username) => {
+  const regEx = /^(?=[a-z_\d]*[a-z])[a-z_\d]{6,14}$/;
+  if (username.match(regEx)) return true;
+  else return false;
+};
+
+const isLink = (link) => {
+  const regEx =
+    /(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/gi;
+  if (link.match(regEx)) return true;
+  else return false;
+};
+
 const isStrongPassword = (password) => {
   const regEx = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,20}$/;
   if (password.match(regEx)) return true;
@@ -66,7 +79,14 @@ exports.validateSignUpData = (data) => {
   if (!isStrongPassword(data.password))
     errors.password =
       "Password must be within 6-20 characters, and must contain at least 1 numeric digit, 1 lowercase letter, and 1 uppercase letter.";
-  if (isEmpty(data.username)) errors.username = "Must not be empty";
+
+  if (isEmpty(data.username)) {
+    errors.username = "Must not be empty";
+  } else if (!isUsername(data.username)) {
+    errors.username =
+      "Username must be within 6-14 characters, and must contain at least 1 letter. Special characters other than '_' is not allowed.";
+  }
+
   if (isEmpty(data.fullName)) errors.fullName = "Must not be empty";
   if (isEmpty(data.birthday)) {
     errors.birthday = "Must not be empty";
@@ -146,6 +166,19 @@ exports.validateAlbumTitle = (albumTitle) => {
   let errors = {};
 
   if (isEmpty(albumTitle)) errors.albumTitle = "Must not be empty";
+
+  return {
+    errors,
+    valid: Object.keys(errors).length === 0 ? true : false,
+  };
+};
+
+exports.validateLink = (link) => {
+  let errors = {};
+
+  if (isEmpty(link)) errors.link = "Must not be empty";
+
+  if (!isLink(link)) errors.link = "Invalid link";
 
   return {
     errors,
