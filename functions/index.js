@@ -33,6 +33,7 @@ const {
   addUserDetails,
   getAuthenticatedUser,
   getUserDetails,
+  searchUsers,
   markNotificationsRead,
   resetPassword,
   changePassword,
@@ -72,6 +73,7 @@ app.post("/user/image", DBAuth, uploadProfileImage);
 app.post("/user", DBAuth, addUserDetails);
 app.get("/user", DBAuth, getAuthenticatedUser);
 app.get("/user/:username", getUserDetails);
+app.post("/searchUser", searchUsers);
 app.post("/notifications", DBAuth, markNotificationsRead);
 app.get("/password/reset", resetPassword); //forgot password
 app.post("/password/update", DBAuth, changePassword); //update password

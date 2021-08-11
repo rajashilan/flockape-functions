@@ -11,7 +11,7 @@ const isEmail = (email) => {
 };
 
 const isUsername = (username) => {
-  const regEx = /^(?=[a-z_\d]*[a-z])[a-z_\d]{6,14}$/;
+  const regEx = /^(?=[a-z_\d]*[a-z])[a-z_\d]{6,14}$/gi;
   if (username.match(regEx)) return true;
   else return false;
 };
