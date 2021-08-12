@@ -151,22 +151,33 @@ exports.getAuthenticatedUser = (req, res) => {
   let userData = {};
 
   //get all user data from user collection
-  //get all the user's likes from the likes collection
+  //get likes from likes links
+  //and get likes from likes albums
   db.doc(`/users/${req.user.username}`)
     .get()
     .then((doc) => {
       if (doc.exists) {
         userData.credentials = doc.data();
         return db
-          .collection("likes")
+          .collection("likesAlbum")
           .where("username", "==", req.user.username)
           .get();
       }
     })
     .then((data) => {
-      userData.likes = [];
+      userData.likesAlbum = [];
       data.forEach((doc) => {
-        userData.likes.push(doc.data());
+        userData.likesAlbum.push(doc.data());
+      });
+      return db
+        .collection("likesLink")
+        .where("username", "==", req.user.username)
+        .get();
+    })
+    .then((data) => {
+      userData.likesLink = [];
+      data.forEach((doc) => {
+        userData.likesLink.push(doc.data());
       });
       return db
         .collection("notifications")

@@ -223,7 +223,7 @@ exports.likeAlbum = (req, res) => {
             return albumDocument.update({ likeCount: albumData.likeCount });
           })
           .then(() => {
-            return res.json({ albumData });
+            return res.json(albumData);
           });
       } else {
         //the user has already liked the album (handle unlike here)
@@ -234,7 +234,7 @@ exports.likeAlbum = (req, res) => {
             return albumDocument.update({ likeCount: albumData.likeCount });
           })
           .then(() => {
-            res.json(albumData);
+            return res.json(albumData);
           });
       }
     })
