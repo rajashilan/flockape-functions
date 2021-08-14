@@ -9,6 +9,7 @@ const { db } = require("./util/admin");
 const {
   getAllAlbums,
   getAnAlbum,
+  getOneAlbum,
   editAlbumDetails,
   createAnAlbum,
   uploadAlbumImage,
@@ -48,6 +49,7 @@ app.use(cors());
 app.get("/albums", DBAuth, getAllAlbums); //gets all the albums for the user
 app.post("/album/:albumID", DBAuth, editAlbumDetails); //edit album details
 app.get("/album/:albumID", DBSelectedAuth, getAnAlbum); //get a particular album and its links
+app.get("/album/:albumID/one", DBSelectedAuth, getOneAlbum); //get the album after changes are made
 app.post("/createAlbum", DBAuth, createAnAlbum); //-------------------------------------------------------verification required
 app.post("/album/:albumID/image", DBAuth, uploadAlbumImage); //user can use this to change album image even later (editing)
 app.get("/album/:albumID/like", DBAuth, likeAlbum); //like and unlike handled in the same route

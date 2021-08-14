@@ -219,7 +219,7 @@ exports.likeLink = (req, res) => {
             return linkDocument.update({ likeCount: linkData.likeCount });
           })
           .then(() => {
-            return res.json({ linkData });
+            return res.json(linkData);
           });
       } else {
         //the user has already liked the link (handle unlike here)
@@ -230,7 +230,7 @@ exports.likeLink = (req, res) => {
             return linkDocument.update({ likeCount: linkData.likeCount });
           })
           .then(() => {
-            res.json(linkData);
+            return res.json(linkData);
           });
       }
     })
@@ -250,6 +250,7 @@ exports.getLikedLinks = (req, res) => {
   let index = 0;
 
   db.collection("likesLink")
+    .orderBy("createdAt", "desc")
     .where("username", "==", req.user.username)
     .get()
     .then((data) => {

@@ -1,5 +1,5 @@
 const { onCall } = require("firebase-functions/lib/providers/https");
-const { db } = require("../util/admin");
+const { admin, db } = require("../util/admin");
 const config = require("../util/config");
 
 const { validateAlbumTitle } = require("../util/validators");
@@ -78,6 +78,37 @@ exports.getAnAlbum = (req, res) => {
       data.forEach((doc) => {
         albumData.links.push(doc.data());
       });
+      return res.json(albumData);
+    })
+    .catch((error) => {
+      console.error(error);
+      res.status(500).json({ error: error.code });
+    });
+};
+
+//get one album and the album only after changes are made
+exports.getOneAlbum = (req, res) => {
+  let albumData = {};
+
+  //get the particular album's data
+  db.doc(`/albums/${req.params.albumID}`)
+    .get()
+    .then((doc) => {
+      //make sure album exists
+      if (!doc.exists) {
+        return res.status(404).json({ error: "Album not found" });
+      }
+
+      //if album is private and another user is accessing, deny access
+      if (
+        doc.data().security == "private" &&
+        doc.data().username !== req.user.username
+      ) {
+        return res.status(403).json({ general: "Unauthorized" });
+      }
+
+      albumData = doc.data();
+      albumData.albumID = doc.id;
       return res.json(albumData);
     })
     .catch((error) => {
@@ -165,6 +196,10 @@ exports.createAnAlbum = (req, res) => {
     likeCount: 0,
     viewCount: 1,
   };
+
+  const { valid, errors } = validateAlbumTitle(newAlbum.albumTitle);
+
+  if (!valid) return res.status(400).json(errors);
 
   //make sure user is verified before allowing user to create an album
   if (!req.user.email_verified)
@@ -254,6 +289,7 @@ exports.getLikedAlbums = (req, res) => {
   let index = 0;
 
   db.collection("likesAlbum")
+    .orderBy("createdAt", "desc")
     .where("username", "==", req.user.username)
     .get()
     .then((data) => {
@@ -308,6 +344,13 @@ exports.getLikedAlbums = (req, res) => {
 //upload album image
 //image will be taken from req.body.albumID
 exports.uploadAlbumImage = (req, res) => {
+  const BusBoy = require("busboy");
+  const path = require("path");
+  const os = require("os");
+  const fs = require("fs");
+
+  const busboy = new BusBoy({ headers: req.headers });
+
   let imageFileName;
   let imageToBeUploaded = {};
 
@@ -331,39 +374,43 @@ exports.uploadAlbumImage = (req, res) => {
     imageFileName = `${Math.round(
       Math.random() * 1000000000000000
     )}.${imageExtension}`;
-    const filePath = path.join(os.tempdir(), imageFileName);
+    const filepath = path.join(os.tmpdir(), imageFileName);
 
-    imageToBeUploaded = { filePath, mimetype };
+    imageToBeUploaded = {
+      filepath,
+      mimetype,
+    };
 
-    file.pipe(fs.createWriteStream(filePath));
-
-    busboy.on("finish", () => {
-      admin.storage
-        .bucket()
-        .upload(imageToBeUploaded.filePath, {
-          resumable: false,
-          metadata: {
-            metadata: {
-              contentType: imageToBeUploaded.mimetype,
-            },
-          },
-        })
-        .then(() => {
-          const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imageFileName}?alt=media`;
-          return db
-            .doc(`/albums/${req.params.albumID}`)
-            .update({ albumImg: imageUrl });
-        })
-        .then(() => {
-          return res.json({ message: "Album image uploaded successfully" });
-        })
-        .catch((error) => {
-          console.error(error);
-          return res.status(500).json({ error: error.code });
-        });
-    });
+    file.pipe(fs.createWriteStream(filepath));
   });
-  busboy.end(req.rawBoy);
+
+  busboy.on("finish", () => {
+    admin
+      .storage()
+      .bucket()
+      .upload(imageToBeUploaded.filepath, {
+        resumable: false,
+        metadata: {
+          metadata: {
+            contentType: imageToBeUploaded.mimetype,
+          },
+        },
+      })
+      .then(() => {
+        const imageUrl = `https://firebasestorage.googleapis.com/v0/b/${config.storageBucket}/o/${imageFileName}?alt=media`;
+        return db
+          .doc(`/albums/${req.params.albumID}`)
+          .update({ albumImg: imageUrl });
+      })
+      .then(() => {
+        return res.json({ message: "Album image uploaded successfully" });
+      })
+      .catch((error) => {
+        console.error(error);
+        return res.status(500).json({ error: error.code });
+      });
+  });
+  busboy.end(req.rawBody);
 };
 
 //delete album
