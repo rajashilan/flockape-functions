@@ -35,6 +35,8 @@ let db = {
       linkImg:
         "https://firebasestorage/sharesite-thumbmails/23we23423e2e2e.png",
       linkDomain: "youtube.com",
+      linkUrl:
+        "https://www.instagram.com/p/CSB_YoxlK_k/?utm_source=ig_web_copy_link",
       albumID: "234sdsfkdsfsdo3",
       username: "raja123",
       likeCount: 3, //optional

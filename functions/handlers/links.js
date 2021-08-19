@@ -2,7 +2,7 @@ const { db } = require("../util/admin");
 const linkPreviewGenerator = require("link-preview-generator");
 const fetch = require("node-fetch");
 
-const { validateLink } = require("../util/validators");
+const { validateLink, validateManualLink } = require("../util/validators");
 
 exports.getAllLinks = (req, res) => {
   //user accesses the link from the album, so /albumID/linkID
@@ -82,7 +82,7 @@ exports.createALink = (req, res) => {
 exports.fetchUrl = (req, res) => {
   //let url = req.body.url;
   let url = req.query.search;
-
+  console.log("UERLLLL", url);
   const { valid, errors } = validateLink(url);
 
   if (!valid) return res.status(400).json(errors);
@@ -95,12 +95,17 @@ exports.fetchUrl = (req, res) => {
       //   "successfully retrieved url data in nodejs...passing to front-end"
       // );
       if (
-        previewData.title.trim() == "" ||
+        previewData.title == "" ||
         previewData.title == null ||
-        previewData.description.trim() == "" ||
-        previewData.description == null
+        previewData.title == undefined ||
+        previewData.title === "Log in to Facebook" ||
+        previewData.img == "" ||
+        previewData.img == null ||
+        previewData.img == undefined
       )
-        return res.status(400).json({ general: "Couldn't extract link info" });
+        return res
+          .status(400)
+          .json({ error: "Oops! Unable to extract link's details." });
 
       return res.status(200).json(previewData);
     } catch (e) {
@@ -131,11 +136,13 @@ exports.fetchImage = (req, res) => {
     })
     .catch((error) => {
       console.log("error from NODEJS getting blob", error);
+      return res.status(400).json({ error: "Couldn't extract link info" });
     });
 };
 
 exports.createLinkFrontEnd = (req, res) => {
   const newLink = {
+    linkUrl: req.body.linkUrl,
     linkTitle: req.body.linkTitle,
     linkDesc: req.body.linkDesc,
     linkImg: req.body.linkImg,
@@ -146,13 +153,13 @@ exports.createLinkFrontEnd = (req, res) => {
     createdAt: new Date().getTime(),
   };
 
-  if (
-    newLink.linkTitle.trim() == "" ||
-    newLink.linkTitle == null ||
-    newLink.linkDesc.trim() == "" ||
-    newLink.linkDesc == null
-  )
-    return res.status(400).json({ general: "Couldn't extract link info" });
+  const validateData = {
+    link: newLink.linkUrl,
+    title: newLink.linkTitle,
+  };
+
+  const { valid, errors } = validateManualLink(validateData);
+  if (!valid) return res.status(400).json(errors);
 
   //check if username is the same as the albumID username before uploading
   db.doc(`/albums/${newLink.albumID}`)
@@ -281,6 +288,7 @@ exports.getLikedLinks = (req, res) => {
                 linkTitle: doc.data().linkTitle,
                 linkDesc: doc.data().linkDesc,
                 linkImg: doc.data().linkImg,
+                linkUrl: doc.data().linkUrl,
                 username: doc.data().username,
                 likeCount: doc.data().likeCount,
                 createdAt: doc.data().createdAt,

@@ -176,9 +176,24 @@ exports.validateAlbumTitle = (albumTitle) => {
 exports.validateLink = (link) => {
   let errors = {};
 
-  if (isEmpty(link)) errors.link = "Must not be empty";
+  if (!isLink(link)) errors.error = "The link requested is invalid";
 
-  if (!isLink(link)) errors.link = "Invalid link";
+  if (isEmpty(link)) errors.error = "Must not be empty";
+
+  return {
+    errors,
+    valid: Object.keys(errors).length === 0 ? true : false,
+  };
+};
+
+exports.validateManualLink = (data) => {
+  let errors = {};
+
+  if (!isLink(data.link)) errors.error = "The link requested is invalid";
+
+  if (isEmpty(data.link)) errors.link = "Must not be empty";
+
+  if (isEmpty(data.title)) errors.title = "Must not be empty";
 
   return {
     errors,

@@ -27,7 +27,9 @@ exports.getAllAlbums = (req, res) => {
       });
       return res.json(albums);
     })
-    .catch((error) => console.error(error));
+    .catch((error) => {
+      console.error(error);
+    });
 };
 
 //get an album
@@ -53,6 +55,7 @@ exports.getAnAlbum = (req, res) => {
 
       albumData = doc.data();
       albumData.albumID = doc.id;
+      console.log(albumData);
 
       //increment viewCount if the current username is not same as the album's username
       if (req.user.username !== albumData.username) {
@@ -76,7 +79,11 @@ exports.getAnAlbum = (req, res) => {
     .then((data) => {
       albumData.links = [];
       data.forEach((doc) => {
-        albumData.links.push(doc.data());
+        const linkObject = {
+          ...doc.data(),
+          linkID: doc.id,
+        };
+        albumData.links.push(linkObject);
       });
       return res.json(albumData);
     })
@@ -295,6 +302,7 @@ exports.getLikedAlbums = (req, res) => {
     .then((data) => {
       data.forEach((doc) => {
         likedAlbumsID.push(doc.data().albumID);
+        console.log(doc.data().albumID);
       });
 
       return likedAlbumsID;
@@ -304,6 +312,8 @@ exports.getLikedAlbums = (req, res) => {
       if (albumID.length == 0) {
         return res.status(404).json({ message: "No liked albums" });
       }
+
+      console.log("returned", albumID);
 
       albumID.forEach((id) => {
         db.doc(`/albums/${id}`)
@@ -326,6 +336,7 @@ exports.getLikedAlbums = (req, res) => {
                 createdAt: doc.data().createdAt,
                 security: doc.data().security,
               });
+              console.log("pushed", albums);
             }
             index++;
           })

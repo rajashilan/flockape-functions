@@ -65,7 +65,7 @@ app.delete("/link/:linkID", DBAuth, deleteLink);
 
 //******USER HAS TO BE LOGGED IN AND AUTHENTICATED INCLUDING ALBUM ID TO BE ABLE TO REQUEST FOR URL DATA*******
 app.post("/fetchUrl", DBAuth, fetchUrl); //route to retrieve and send back url data
-app.post("/fetchImage", DBAuth, fetchImage); //route to retrieve and send image blob data
+app.post("/fetchImage", fetchImage); //route to retrieve and send image blob data
 app.post("/album/:albumID/link", DBAuth, createLinkFrontEnd); //route to upload data and respond to front end
 
 //users routes----------
@@ -244,6 +244,29 @@ exports.onAlbumDelete = functions
       .then((data) => {
         data.forEach((doc) => {
           batch.delete(db.doc(`/notifications/${doc.id}`));
+        });
+        return batch.commit();
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  });
+//delete the link and if like links has the link's id, delete that like too
+exports.onLinkDelete = functions
+  .region("asia-southeast1")
+  .firestore.document("/links/{linkID}")
+  .onDelete((snapshot, context) => {
+    //context has the parameters that we have in the url
+    const linkID = context.params.linkID;
+    const batch = db.batch();
+
+    return db
+      .collection("likesLink")
+      .where("linkID", "==", linkID)
+      .get()
+      .then((data) => {
+        data.forEach((doc) => {
+          batch.delete(db.doc(`/likesLink/${doc.id}`));
         });
         return batch.commit();
       })
