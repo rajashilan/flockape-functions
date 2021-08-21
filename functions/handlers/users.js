@@ -158,6 +158,7 @@ exports.getAuthenticatedUser = (req, res) => {
     .then((doc) => {
       if (doc.exists) {
         userData.credentials = doc.data();
+        userData.credentials.isVerified = req.user.email_verified;
         return db
           .collection("likesAlbum")
           .where("username", "==", req.user.username)
@@ -210,7 +211,7 @@ exports.getAuthenticatedUser = (req, res) => {
 //private albums should not be shown at all since any user can see this info
 exports.getUserDetails = (req, res) => {
   let userData = {};
-
+  console.log("user details called");
   db.doc(`/users/${req.params.username}`)
     .get()
     .then((doc) => {
@@ -236,6 +237,7 @@ exports.getUserDetails = (req, res) => {
           viewCount: doc.data().viewCount,
           createdAt: doc.data().createdAt,
           username: doc.data().username,
+          profileImg: doc.data().profileImg,
           albumID: doc.id,
         });
       });

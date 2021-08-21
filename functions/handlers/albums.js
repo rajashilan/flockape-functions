@@ -302,7 +302,6 @@ exports.getLikedAlbums = (req, res) => {
     .then((data) => {
       data.forEach((doc) => {
         likedAlbumsID.push(doc.data().albumID);
-        console.log(doc.data().albumID);
       });
 
       return likedAlbumsID;
@@ -313,8 +312,6 @@ exports.getLikedAlbums = (req, res) => {
         return res.status(404).json({ message: "No liked albums" });
       }
 
-      console.log("returned", albumID);
-
       albumID.forEach((id) => {
         db.doc(`/albums/${id}`)
           .get()
@@ -323,7 +320,6 @@ exports.getLikedAlbums = (req, res) => {
               doc.data().security == "private" &&
               doc.data().username !== req.user.username
             ) {
-              //dont push anything
             } else {
               albums.push({
                 albumID: doc.id,
@@ -336,7 +332,6 @@ exports.getLikedAlbums = (req, res) => {
                 createdAt: doc.data().createdAt,
                 security: doc.data().security,
               });
-              console.log("pushed", albums);
             }
             index++;
           })
