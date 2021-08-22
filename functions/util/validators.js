@@ -116,21 +116,33 @@ exports.validateLogInData = (data) => {
 exports.reduceUserDetails = (data) => {
   let userDetails = {};
 
-  //if data has attributes that are empty, dont add them to userDetails object
-  if (!isEmpty(data.bio.trim())) userDetails.bio = data.bio;
+  userDetails.bio = data.bio;
+  userDetails.location = data.location;
+  userDetails.fullName = data.fullName;
 
   if (!isEmpty(data.website.trim())) {
     //add http to website input if it is not entered by user
     if (data.website.trim().substring(0, 4) !== "http") {
       userDetails.website = `http://${data.website.trim()}`;
     } else userDetails.website = data.website;
+  } else {
+    userDetails.website = data.website;
   }
 
-  if (!isEmpty(data.location.trim())) userDetails.location = data.location;
-
-  if (!isEmpty(data.fullName.trim())) userDetails.fullName = data.fullName;
-
   return userDetails;
+};
+
+exports.validateFullName = (fullName) => {
+  let errors = {};
+
+  if (isEmpty(fullName)) {
+    errors.fullName = "Must not be empty";
+  }
+
+  return {
+    errors,
+    valid: Object.keys(errors).length === 0 ? true : false,
+  };
 };
 
 exports.validatePasswordReset = (email) => {

@@ -12,6 +12,7 @@ const {
   reduceUserDetails,
   validatePasswordReset,
   validatePasswordUpdate,
+  validateFullName,
 } = require("../util/validators");
 
 exports.signup = (req, res) => {
@@ -128,12 +129,11 @@ exports.login = (req, res) => {
 
 //edit user details (name, bio, location, website)
 exports.addUserDetails = (req, res) => {
-  let userDetails = reduceUserDetails(req.body);
+  const { valid, errors } = validateFullName(req.body.fullName);
+  if (!valid) return res.status(400).json(errors);
 
-  if (userDetails.hasOwnProperty("fullName")) {
-    //capitalise user's full name
-    userDetails.fullName = capitaliseName(userDetails.fullName);
-  }
+  let userDetails = reduceUserDetails(req.body);
+  userDetails.fullName = capitaliseName(userDetails.fullName);
 
   db.doc(`/users/${req.user.username}`)
     .update(userDetails)
@@ -311,7 +311,7 @@ exports.uploadProfileImage = (req, res) => {
 
   busboy.on("file", (fieldname, file, filename, encoding, mimetype) => {
     if (mimetype !== "image/jpeg" && mimetype !== "image/png") {
-      return res.status(400).json({ error: "Wrong file type submitted" });
+      return res.status(400).json({ image: "Invalid image type" });
     }
 
     const imageExtension = filename.split(".")[filename.split(".").length - 1];
