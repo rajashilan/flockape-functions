@@ -194,6 +194,9 @@ exports.getAuthenticatedUser = (req, res) => {
           sender: doc.data().sender,
           read: doc.data().read,
           contentID: doc.data().contentID,
+          contentName: doc.data().contentName,
+          contentImg: doc.data().contentImg,
+          senderProfileImg: doc.data().senderProfileImg,
           createdAt: doc.data().createdAt,
           type: doc.data().type,
           notificationID: doc.id,
@@ -363,7 +366,6 @@ exports.resetPassword = (req, res) => {
   const email = req.body.email;
 
   const { valid, errors } = validatePasswordReset(email);
-
   if (!valid) return res.status(400).json(errors);
 
   firebase
@@ -378,7 +380,9 @@ exports.resetPassword = (req, res) => {
       var errorCode = error.code;
       var errorMessage = error.message;
       console.error(errorCode);
-      return res.status(500).json({ general: "Something went wrong" });
+      if (errorCode === "auth/user-not-found")
+        return res.status(404).json({ email: "Email is not registered." });
+      else return res.status(500).json({ error: "Something went wrong" });
     });
 };
 
@@ -394,16 +398,11 @@ exports.changePassword = (req, res) => {
 
   if (!valid) return res.status(400).json(errors);
 
-  const user = firebase.auth().currentUser;
-
-  var credential = firebase.auth.EmailAuthProvider.credential(
-    firebase.auth().currentUser.email,
-    newPassword.oldPassword
-  );
-
-  user
-    .reauthenticateWithCredential(credential)
-    .then(() => {
+  firebase
+    .auth()
+    .signInWithEmailAndPassword(req.user.email, newPassword.oldPassword)
+    .then((userCredentials) => {
+      var user = userCredentials.user;
       user
         .updatePassword(newPassword.password)
         .then(() => {
@@ -420,6 +419,6 @@ exports.changePassword = (req, res) => {
       console.error(error);
       return res
         .status(400)
-        .json({ general: "Invalid password. Please try again" });
+        .json({ oldPassword: "Invalid password. Please try again" });
     });
 };

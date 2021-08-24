@@ -258,6 +258,7 @@ exports.likeAlbum = (req, res) => {
           .add({
             albumID: req.params.albumID,
             username: req.user.username,
+            profileImg: req.user.profileImg,
             createdAt: new Date().getTime(),
           })
           .then(() => {

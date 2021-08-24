@@ -167,6 +167,9 @@ exports.validatePasswordUpdate = (data) => {
   if (isEmpty(data.password)) errors.password = "Must not be empty";
   if (data.password !== data.confirmPassword)
     errors.confirmPassword = "Passwords must match";
+  if (!isStrongPassword(data.password))
+    errors.password =
+      "Password must be within 6-20 characters, and must contain at least 1 numeric digit, 1 lowercase letter, and 1 uppercase letter.";
 
   return {
     errors,

@@ -148,7 +148,8 @@ exports.createLinkFrontEnd = (req, res) => {
     linkImg: req.body.linkImg,
     linkDomain: req.body.linkDomain,
     albumID: req.params.albumID,
-    username: req.user.username, //change to req.user after adding DBAuth
+    username: req.user.username,
+    profileImg: req.user.profileImg,
     likeCount: 0,
     createdAt: new Date().getTime(),
   };
@@ -220,6 +221,7 @@ exports.likeLink = (req, res) => {
             linkID: req.params.linkID,
             username: req.user.username,
             createdAt: new Date().getTime(),
+            profileImg: req.user.profileImg,
           })
           .then(() => {
             linkData.likeCount++;

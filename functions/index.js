@@ -1,6 +1,8 @@
 const functions = require("firebase-functions");
 
-const app = require("express")();
+const express = require("express");
+
+const app = express();
 
 const cors = require("cors");
 
@@ -45,6 +47,19 @@ const DBSelectedAuth = require("./util/dbSelectedAuth");
 
 app.use(cors());
 
+if (process.env.NODE_ENV === "production") {
+  // Exprees will serve up production assets
+  app.use(express.static("flockape-client/build"));
+
+  // Express serve up index.html file if it doesn't recognize route
+  const path = require("path");
+  app.get("*", (req, res) => {
+    res.sendFile(
+      path.resolve(__dirname, "flockape-client", "build", "index.html")
+    );
+  });
+}
+
 //image will be taken from req.body.albumID
 app.get("/albums", DBAuth, getAllAlbums); //gets all the albums for the user
 app.post("/album/:albumID", DBAuth, editAlbumDetails); //edit album details
@@ -77,7 +92,7 @@ app.get("/user", DBAuth, getAuthenticatedUser);
 app.get("/user/:username", getUserDetails);
 app.post("/searchUser", searchUsers);
 app.post("/notifications", DBAuth, markNotificationsRead);
-app.get("/password/reset", resetPassword); //forgot password
+app.post("/password/reset", resetPassword); //forgot password
 app.post("/password/update", DBAuth, changePassword); //update password
 
 exports.api = functions.region("asia-southeast1").https.onRequest(app);
@@ -96,8 +111,11 @@ exports.createNotificationOnLikeAlbum = functions
             createdAt: new Date().getTime(),
             recipient: doc.data().username,
             sender: snapshot.data().username,
+            senderProfileImg: snapshot.data().profileImg,
             read: false,
             contentID: doc.id,
+            contentName: doc.data().albumTitle,
+            contentImg: doc.data().albumImg,
             type: "album",
           });
         }
@@ -134,8 +152,11 @@ exports.createNotificationOnLikeLink = functions
             createdAt: new Date().getTime(),
             recipient: doc.data().username,
             sender: snapshot.data().username,
+            senderProfileImg: snapshot.data().profileImg, //sender's dp not owner's dp
             read: false,
             contentID: doc.id,
+            contentName: doc.data().linkTitle,
+            contentImg: doc.data().linkImg,
             type: "link",
           });
         }
