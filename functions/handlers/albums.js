@@ -42,7 +42,7 @@ exports.getAnAlbum = (req, res) => {
     .then((doc) => {
       //make sure album exists
       if (!doc.exists) {
-        return res.status(404).json({ error: "Album not found" });
+        return res.status(404).json({ error: "Book not found" });
       }
 
       //if album is private and another user is accessing, deny access
@@ -103,7 +103,7 @@ exports.getOneAlbum = (req, res) => {
     .then((doc) => {
       //make sure album exists
       if (!doc.exists) {
-        return res.status(404).json({ error: "Album not found" });
+        return res.status(404).json({ error: "Book not found" });
       }
 
       //if album is private and another user is accessing, deny access
@@ -141,7 +141,7 @@ exports.editAlbumDetails = (req, res) => {
     .get()
     .then((doc) => {
       if (!doc.exists) {
-        return res.status(404).json({ error: "Album not found" });
+        return res.status(404).json({ error: "Book not found" });
       }
 
       if (doc.data().username !== req.user.username) {
@@ -212,7 +212,7 @@ exports.createAnAlbum = (req, res) => {
   if (!req.user.email_verified)
     return res
       .status(403)
-      .json({ general: "Please verify your email before creating an album." });
+      .json({ general: "Please verify your email before creating a Book." });
 
   db.collection("albums")
     .add(newAlbum)
@@ -248,7 +248,7 @@ exports.likeAlbum = (req, res) => {
 
         return likeAlbumDocument.get();
       } else {
-        return res.status(404).json({ error: "Album not found" });
+        return res.status(404).json({ error: "Book not found" });
       }
     })
     .then((data) => {
@@ -310,7 +310,7 @@ exports.getLikedAlbums = (req, res) => {
     .then((albumID) => {
       //if there are no liked albums id, there are no liked albums for the user, so return
       if (albumID.length == 0) {
-        return res.status(404).json({ message: "No liked albums" });
+        return res.status(404).json({ message: "No liked Books" });
       }
 
       albumID.forEach((id) => {
@@ -344,7 +344,7 @@ exports.getLikedAlbums = (req, res) => {
     })
     .catch((error) => {
       console.error(error);
-      return res.status(500).json({ general: "Error getting liked albums" });
+      return res.status(500).json({ general: "Error getting liked Books" });
     });
 };
 
@@ -410,7 +410,7 @@ exports.uploadAlbumImage = (req, res) => {
           .update({ albumImg: imageUrl });
       })
       .then(() => {
-        return res.json({ message: "Album image uploaded successfully" });
+        return res.json({ message: "Book cover uploaded successfully" });
       })
       .catch((error) => {
         console.error(error);
@@ -432,7 +432,7 @@ exports.deleteAlbum = (req, res) => {
     .get()
     .then((doc) => {
       if (!doc.exists) {
-        return res.status(404).json({ error: "Album not found" });
+        return res.status(404).json({ error: "Book not found" });
       }
 
       if (doc.data().username !== req.user.username) {
@@ -457,7 +457,7 @@ exports.deleteAlbum = (req, res) => {
       }
     })
     .then(() => {
-      res.json({ message: "Album deleted successfully" });
+      res.json({ message: "Book deleted successfully" });
     })
     .catch((error) => {
       console.error(error);

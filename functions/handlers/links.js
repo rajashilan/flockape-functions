@@ -68,7 +68,7 @@ exports.createALink = (req, res) => {
       db.collection("links")
         .add(newLink)
         .then((doc) => {
-          res.json({ message: `Link ${doc.id} created successfully` });
+          res.json({ message: `Page ${doc.id} created successfully` });
         })
         .catch((error) => {
           res.status(500).json({ error: "something went wrong" });
@@ -99,6 +99,7 @@ exports.fetchUrl = (req, res) => {
         previewData.title == null ||
         previewData.title == undefined ||
         previewData.title === "Log in to Facebook" ||
+        previewData.title === "Log in or sign up to view" ||
         previewData.img == "" ||
         previewData.img == null ||
         previewData.img == undefined
@@ -184,7 +185,7 @@ exports.createLinkFrontEnd = (req, res) => {
           return res.status(403).json({ username: "Unauthorized" });
         }
       } else {
-        return res.status(404).json({ album: "Album does not exist." });
+        return res.status(404).json({ album: "Book does not exist." });
       }
     });
 };
@@ -210,7 +211,7 @@ exports.likeLink = (req, res) => {
 
         return likeLinkDocument.get();
       } else {
-        return res.status(404).json({ error: "Link not found" });
+        return res.status(404).json({ error: "Page not found" });
       }
     })
     .then((data) => {
@@ -272,7 +273,7 @@ exports.getLikedLinks = (req, res) => {
     .then((linkID) => {
       //if there are no liked links id, there are no liked links for the user, so return
       if (linkID.length == 0) {
-        return res.status(404).json({ message: "No liked links" });
+        return res.status(404).json({ message: "No liked pages" });
       }
 
       linkID.forEach((id) => {
@@ -307,7 +308,7 @@ exports.getLikedLinks = (req, res) => {
     })
     .catch((error) => {
       console.error(error);
-      return res.status(500).json({ general: "Error getting liked albums" });
+      return res.status(500).json({ general: "Error getting liked pages" });
     });
 };
 
@@ -319,7 +320,7 @@ exports.deleteLink = (req, res) => {
     .get()
     .then((doc) => {
       if (!doc.exists) {
-        return res.status(404).json({ error: "Link not found" });
+        return res.status(404).json({ error: "Page not found" });
       }
 
       if (doc.data().username !== req.user.username) {
@@ -329,7 +330,7 @@ exports.deleteLink = (req, res) => {
       }
     })
     .then(() => {
-      res.json({ message: "Link deleted successfully" });
+      res.json({ message: "Page deleted successfully" });
     })
     .catch((error) => {
       console.error(error);
