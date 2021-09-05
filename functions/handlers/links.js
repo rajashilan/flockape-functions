@@ -49,7 +49,6 @@ exports.createALink = (req, res) => {
   const startLinkPreview = async function scrape(url) {
     try {
       previewData = await linkPreviewGenerator(url);
-      console.log(previewData);
       // return res.status(200).json(previewData);
       return previewData;
     } catch (e) {
@@ -82,7 +81,6 @@ exports.createALink = (req, res) => {
 exports.fetchUrl = (req, res) => {
   //let url = req.body.url;
   let url = req.query.search;
-  console.log("UERLLLL", url);
   const { valid, errors } = validateLink(url);
 
   if (!valid) return res.status(400).json(errors);
@@ -90,10 +88,13 @@ exports.fetchUrl = (req, res) => {
   const startLinkPreview = async function scrape(url) {
     try {
       previewData = await linkPreviewGenerator(url);
-      // console.log(previewData);
-      // console.log(
-      //   "successfully retrieved url data in nodejs...passing to front-end"
-      // );
+
+      if (previewData.domain === "tiktok.com") {
+        previewData.alt = true;
+      } else {
+        previewData.alt = false;
+      }
+
       if (
         previewData.title == "" ||
         previewData.title == null ||
@@ -126,17 +127,12 @@ exports.fetchImage = (req, res) => {
       return res.blob();
     })
     .then((blob) => {
-      console.log(
-        "successfully retrieved blob in nodejs...passing to front-end"
-      );
-
       res.type(blob.type);
       blob.arrayBuffer().then((buf) => {
         res.end(Buffer.from(buf));
       });
     })
     .catch((error) => {
-      console.log("error from NODEJS getting blob", error);
       return res.status(400).json({ error: "Couldn't extract link info" });
     });
 };

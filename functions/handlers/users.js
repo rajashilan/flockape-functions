@@ -15,6 +15,8 @@ const {
   validateFullName,
 } = require("../util/validators");
 
+const { generateRandomNumber } = require("../util/filenameGenerator");
+
 exports.signup = (req, res) => {
   const newUser = {
     email: req.body.email,
@@ -114,6 +116,7 @@ exports.login = (req, res) => {
     .auth()
     .signInWithEmailAndPassword(user.email, user.password)
     .then((data) => {
+      // console.log("dataAAAA:::::", data.user.refreshToken);
       return data.user.getIdToken();
     })
     .then((token) => {
@@ -214,7 +217,6 @@ exports.getAuthenticatedUser = (req, res) => {
 //private albums should not be shown at all since any user can see this info
 exports.getUserDetails = (req, res) => {
   let userData = {};
-  console.log("user details called");
   db.doc(`/users/${req.params.username}`)
     .get()
     .then((doc) => {
@@ -319,9 +321,9 @@ exports.uploadProfileImage = (req, res) => {
 
     const imageExtension = filename.split(".")[filename.split(".").length - 1];
 
-    imageFileName = `${Math.round(
-      Math.random() * 1000000000000000
-    )}.${imageExtension}`;
+    const randomNum = generateRandomNumber();
+
+    imageFileName = `${randomNum}.${imageExtension}`;
     const filepath = path.join(os.tmpdir(), imageFileName);
 
     imageToBeUploaded = {

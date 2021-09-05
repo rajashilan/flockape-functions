@@ -1,8 +1,9 @@
-const { onCall } = require("firebase-functions/lib/providers/https");
 const { admin, db } = require("../util/admin");
 const config = require("../util/config");
 
 const { validateAlbumTitle } = require("../util/validators");
+
+const { generateRandomNumber } = require("../util/filenameGenerator");
 
 //get all albums for the user
 exports.getAllAlbums = (req, res) => {
@@ -55,7 +56,6 @@ exports.getAnAlbum = (req, res) => {
 
       albumData = doc.data();
       albumData.albumID = doc.id;
-      console.log(albumData);
 
       //increment viewCount if the current username is not same as the album's username
       if (req.user.username !== albumData.username) {
@@ -162,7 +162,6 @@ exports.editAlbumDetails = (req, res) => {
     .then((security) => {
       //if it has, update the links under the album to match the new security settings
       if (security) {
-        console.log("Updating link security");
         return db
           .collection("links")
           .where("albumID", "==", req.params.albumID)
@@ -378,9 +377,9 @@ exports.uploadAlbumImage = (req, res) => {
 
     const imageExtension = filename.split(".")[filename.split(".").length - 1];
 
-    imageFileName = `${Math.round(
-      Math.random() * 1000000000000000
-    )}.${imageExtension}`;
+    const randomNum = generateRandomNumber();
+
+    imageFileName = `${randomNum}.${imageExtension}`;
     const filepath = path.join(os.tmpdir(), imageFileName);
 
     imageToBeUploaded = {
