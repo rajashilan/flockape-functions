@@ -47,35 +47,35 @@ const DBSelectedAuth = require("./util/dbSelectedAuth");
 
 app.use(cors());
 
-if (process.env.NODE_ENV === "production") {
-  // Exprees will serve up production assets
-  app.use(express.static("flockape-client/build"));
+// if (process.env.NODE_ENV === "production") {
+//   // Exprees will serve up production assets
+//   app.use(express.static("flockape-client/build"));
 
-  // Express serve up index.html file if it doesn't recognize route
-  const path = require("path");
-  app.get("*", (req, res) => {
-    res.sendFile(
-      path.resolve(__dirname, "flockape-client", "build", "index.html")
-    );
-  });
-}
+//   // Express serve up index.html file if it doesn't recognize route
+//   const path = require("path");
+//   app.get("*", (req, res) => {
+//     res.sendFile(
+//       path.resolve(__dirname, "flockape-client", "build", "index.html")
+//     );
+//   });
+// }
 
 //image will be taken from req.body.albumID
-app.get("/albums", DBAuth, getAllAlbums); //gets all the albums for the user
+app.post("/albums", DBAuth, getAllAlbums); //gets all the albums for the user
 app.post("/album/:albumID", DBAuth, editAlbumDetails); //edit album details
 app.get("/album/:albumID", DBSelectedAuth, getAnAlbum); //get a particular album and its links
 app.get("/album/:albumID/one", DBSelectedAuth, getOneAlbum); //get the album after changes are made
 app.post("/createAlbum", DBAuth, createAnAlbum); //-------------------------------------------------------verification required
 app.post("/album/:albumID/image", DBAuth, uploadAlbumImage); //user can use this to change album image even later (editing)
 app.get("/album/:albumID/like", DBAuth, likeAlbum); //like and unlike handled in the same route
-app.get("/getLikedAlbums", DBAuth, getLikedAlbums); //get a user's liked albums
+app.post("/getLikedAlbums", DBAuth, getLikedAlbums); //get a user's liked albums
 app.delete("/album/:albumID", DBAuth, deleteAlbum);
 
 //link routes REMEMBER TO ADD IMAGE----------
 app.post("/getLinks", DBAuth, getAllLinks); //gets all the links for the album //not to be used in production
 app.post("/createLink", DBAuth, createALink);
 app.get("/link/:linkID/like", DBAuth, likeLink); //like and unlike handled in the same route
-app.get("/getLikedLinks", DBAuth, getLikedLinks); //get a user's liked links
+app.post("/getLikedLinks", DBAuth, getLikedLinks); //get a user's liked links
 app.delete("/link/:linkID", DBAuth, deleteLink);
 
 //******USER HAS TO BE LOGGED IN AND AUTHENTICATED INCLUDING ALBUM ID TO BE ABLE TO REQUEST FOR URL DATA*******

@@ -7,9 +7,23 @@ const { generateRandomNumber } = require("../util/filenameGenerator");
 
 //get all albums for the user
 exports.getAllAlbums = (req, res) => {
-  db.collection("albums")
-    .orderBy("createdAt", "desc")
-    .where("username", "==", req.user.username)
+  let allAlbumsQuery;
+
+  if (req.body.limit) {
+    allAlbumsQuery = db
+      .collection("albums")
+      .where("username", "==", req.user.username)
+      .orderBy("createdAt", "desc")
+      .startAfter(req.body.limit.createdAt)
+      .limit(10);
+  } else
+    allAlbumsQuery = db
+      .collection("albums")
+      .where("username", "==", req.user.username)
+      .orderBy("createdAt", "desc")
+      .limit(10);
+
+  allAlbumsQuery
     .get()
     .then((data) => {
       let albums = [];
@@ -26,7 +40,8 @@ exports.getAllAlbums = (req, res) => {
           createdAt: doc.data().createdAt,
         });
       });
-      return res.json(albums);
+      if (albums.length > 0) return res.json(albums);
+      else return res.status(404).json({ message: "No Books" });
     })
     .catch((error) => {
       console.error(error);
@@ -295,13 +310,32 @@ exports.getLikedAlbums = (req, res) => {
   let albums = [];
   let index = 0;
 
-  db.collection("likesAlbum")
-    .orderBy("createdAt", "desc")
-    .where("username", "==", req.user.username)
+  let likedAlbumsQuery;
+
+  console.log(req.body.limit);
+
+  if (req.body.limit) {
+    likedAlbumsQuery = db
+      .collection("likesAlbum")
+      .where("username", "==", req.user.username)
+      .orderBy("createdAt", "desc")
+      .startAfter(req.body.limit.albumDocCreatedAt)
+      .limit(10);
+  } else
+    likedAlbumsQuery = db
+      .collection("likesAlbum")
+      .where("username", "==", req.user.username)
+      .orderBy("createdAt", "desc")
+      .limit(10);
+
+  likedAlbumsQuery
     .get()
     .then((data) => {
       data.forEach((doc) => {
-        likedAlbumsID.push(doc.data().albumID);
+        likedAlbumsID.push({
+          albumID: doc.data().albumID,
+          albumDocCreatedAt: doc.data().createdAt,
+        });
       });
 
       return likedAlbumsID;
@@ -312,8 +346,9 @@ exports.getLikedAlbums = (req, res) => {
         return res.status(404).json({ message: "No liked Books" });
       }
 
-      albumID.forEach((id) => {
-        db.doc(`/albums/${id}`)
+      for (let [indexForEach, id] of albumID.entries()) {
+        let tempIndex = indexForEach;
+        db.doc(`/albums/${id.albumID}`)
           .get()
           .then((doc) => {
             if (
@@ -321,7 +356,7 @@ exports.getLikedAlbums = (req, res) => {
               doc.data().username !== req.user.username
             ) {
             } else {
-              albums.push({
+              albums[tempIndex] = {
                 albumID: doc.id,
                 albumTitle: doc.data().albumTitle,
                 username: doc.data().username,
@@ -331,7 +366,8 @@ exports.getLikedAlbums = (req, res) => {
                 profileImg: doc.data().profileImg,
                 createdAt: doc.data().createdAt,
                 security: doc.data().security,
-              });
+                albumDocCreatedAt: id.albumDocCreatedAt,
+              };
             }
             index++;
           })
@@ -339,7 +375,36 @@ exports.getLikedAlbums = (req, res) => {
             //return only after reaching the end of the for loop
             if (index == albumID.length) return res.json(albums);
           });
-      });
+      }
+
+      // albumID.forEach((id) => {
+      //   db.doc(`/albums/${id}`)
+      //     .get()
+      //     .then((doc) => {
+      //       if (
+      //         doc.data().security == "private" &&
+      //         doc.data().username !== req.user.username
+      //       ) {
+      //       } else {
+      //         albums.push({
+      //           albumID: doc.id,
+      //           albumTitle: doc.data().albumTitle,
+      //           username: doc.data().username,
+      //           albumImg: doc.data().albumImg,
+      //           likeCount: doc.data().likeCount,
+      //           viewCount: doc.data().viewCount,
+      //           profileImg: doc.data().profileImg,
+      //           createdAt: doc.data().createdAt,
+      //           security: doc.data().security,
+      //         });
+      //       }
+      //       index++;
+      //     })
+      //     .then(() => {
+      //       //return only after reaching the end of the for loop
+      //       if (index == albumID.length) return res.json(albums);
+      //     });
+      // });
     })
     .catch((error) => {
       console.error(error);

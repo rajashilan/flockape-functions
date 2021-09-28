@@ -255,13 +255,30 @@ exports.getLikedLinks = (req, res) => {
   let links = [];
   let index = 0;
 
-  db.collection("likesLink")
-    .orderBy("createdAt", "desc")
-    .where("username", "==", req.user.username)
+  let likedLinksQuery;
+
+  if (req.body.limit) {
+    likedLinksQuery = db
+      .collection("likesLink")
+      .where("username", "==", req.user.username)
+      .orderBy("createdAt", "desc")
+      .startAfter(req.body.limit.linkDocCreatedAt)
+      .limit(16);
+  } else
+    likedLinksQuery = db
+      .collection("likesLink")
+      .where("username", "==", req.user.username)
+      .orderBy("createdAt", "desc")
+      .limit(16);
+
+  likedLinksQuery
     .get()
     .then((data) => {
       data.forEach((doc) => {
-        likedLinksID.push(doc.data().linkID);
+        likedLinksID.push({
+          linkID: doc.data().linkID,
+          linkDocCreatedAt: doc.data().createdAt,
+        });
       });
 
       return likedLinksID;
@@ -269,11 +286,16 @@ exports.getLikedLinks = (req, res) => {
     .then((linkID) => {
       //if there are no liked links id, there are no liked links for the user, so return
       if (linkID.length == 0) {
+        console.log("404");
         return res.status(404).json({ message: "No liked pages" });
       }
 
-      linkID.forEach((id) => {
-        db.doc(`/links/${id}`)
+      //linkID has the blueprint to how the links should actually be arranged
+      for (let [indexForEach, id] of linkID.entries()) {
+        //get the index of the current loop
+        //so that the link will be stored at the correct index in the array
+        let tempIndex = indexForEach;
+        db.doc(`/links/${id.linkID}`)
           .get()
           .then((doc) => {
             if (
@@ -282,7 +304,7 @@ exports.getLikedLinks = (req, res) => {
             ) {
               //dont push anything
             } else {
-              links.push({
+              links[tempIndex] = {
                 linkID: doc.id,
                 linkTitle: doc.data().linkTitle,
                 linkDesc: doc.data().linkDesc,
@@ -292,7 +314,8 @@ exports.getLikedLinks = (req, res) => {
                 likeCount: doc.data().likeCount,
                 createdAt: doc.data().createdAt,
                 security: doc.data().security,
-              });
+                linkDocCreatedAt: id.linkDocCreatedAt,
+              };
             }
             index++;
           })
@@ -300,7 +323,39 @@ exports.getLikedLinks = (req, res) => {
             //return only after reaching the end of the for loop
             if (index == linkID.length) return res.json(links);
           });
-      });
+      }
+      // linkID.forEach((id) => {
+      //   console.log(id);
+      //   db.doc(`/links/${id}`)
+      //     .get()
+      //     .then((doc) => {
+      //       if (
+      //         doc.data().security == "private" &&
+      //         doc.data().username !== req.user.username
+      //       ) {
+      //         //dont push anything
+      //       } else {
+      //         console.log("ACTUAL INDEX::::    ", index, id);
+      //         links.push({
+      //           linkID: doc.id,
+      //           linkTitle: doc.data().linkTitle,
+      //           linkDesc: doc.data().linkDesc,
+      //           linkImg: doc.data().linkImg,
+      //           linkUrl: doc.data().linkUrl,
+      //           username: doc.data().username,
+      //           likeCount: doc.data().likeCount,
+      //           createdAt: doc.data().createdAt,
+      //           security: doc.data().security,
+      //         });
+      //       }
+      //       console.log("IDLAST:::   ", index, doc.id);
+      //       index++;
+      //     })
+      //     .then(() => {
+      //       //return only after reaching the end of the for loop
+      //       if (index == linkID.length) return res.json(links);
+      //     });
+      // });
     })
     .catch((error) => {
       console.error(error);
