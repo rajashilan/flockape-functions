@@ -10,6 +10,7 @@ const { db } = require("./util/admin");
 
 const {
   getAllAlbums,
+  searchAllAlbums,
   getAnAlbum,
   getOneAlbum,
   editAlbumDetails,
@@ -17,6 +18,8 @@ const {
   uploadAlbumImage,
   likeAlbum,
   getLikedAlbums,
+  getLikesAlbumGeneralPagination,
+  getLikesAlbumUserPagination,
   deleteAlbum,
 } = require("./handlers/albums");
 const {
@@ -27,6 +30,7 @@ const {
   createLinkFrontEnd,
   likeLink,
   getLikedLinks,
+  getLikesLinkPagination,
   deleteLink,
 } = require("./handlers/links");
 const {
@@ -35,6 +39,7 @@ const {
   uploadProfileImage,
   addUserDetails,
   getAuthenticatedUser,
+  notificationPagination,
   getUserDetails,
   searchUsers,
   markNotificationsRead,
@@ -44,6 +49,7 @@ const {
 
 const DBAuth = require("./util/dbAuth");
 const DBSelectedAuth = require("./util/dbSelectedAuth");
+const dbAuth = require("./util/dbAuth");
 
 app.use(cors());
 
@@ -62,6 +68,7 @@ app.use(cors());
 
 //image will be taken from req.body.albumID
 app.post("/albums", DBAuth, getAllAlbums); //gets all the albums for the user
+app.post("/searchAlbums", DBAuth, searchAllAlbums); //user searches for all their own albums
 app.post("/album/:albumID", DBAuth, editAlbumDetails); //edit album details
 app.get("/album/:albumID", DBSelectedAuth, getAnAlbum); //get a particular album and its links
 app.get("/album/:albumID/one", DBSelectedAuth, getOneAlbum); //get the album after changes are made
@@ -69,6 +76,12 @@ app.post("/createAlbum", DBAuth, createAnAlbum); //-----------------------------
 app.post("/album/:albumID/image", DBAuth, uploadAlbumImage); //user can use this to change album image even later (editing)
 app.get("/album/:albumID/like", DBAuth, likeAlbum); //like and unlike handled in the same route
 app.post("/getLikedAlbums", DBAuth, getLikedAlbums); //get a user's liked albums
+app.post(
+  "/getLikedAlbumGeneralPagination",
+  DBAuth,
+  getLikesAlbumGeneralPagination
+); //get a user's liked albums (including other users)
+app.post("/getLikedAlbumUserPagination", DBAuth, getLikesAlbumUserPagination); //get a user's liked albums (only the authenticated user's)
 app.delete("/album/:albumID", DBAuth, deleteAlbum);
 
 //link routes REMEMBER TO ADD IMAGE----------
@@ -76,6 +89,7 @@ app.post("/getLinks", DBAuth, getAllLinks); //gets all the links for the album /
 app.post("/createLink", DBAuth, createALink);
 app.get("/link/:linkID/like", DBAuth, likeLink); //like and unlike handled in the same route
 app.post("/getLikedLinks", DBAuth, getLikedLinks); //get a user's liked links
+app.post("/getLikedLinkPagination", DBAuth, getLikesLinkPagination); //get a user's liked albums
 app.delete("/link/:linkID", DBAuth, deleteLink);
 
 //******USER HAS TO BE LOGGED IN AND AUTHENTICATED INCLUDING ALBUM ID TO BE ABLE TO REQUEST FOR URL DATA*******
@@ -89,7 +103,8 @@ app.post("/login", login);
 app.post("/user/image", DBAuth, uploadProfileImage);
 app.post("/user", DBAuth, addUserDetails);
 app.get("/user", DBAuth, getAuthenticatedUser);
-app.get("/user/:username", getUserDetails);
+app.post("/user/notifications", DBAuth, notificationPagination);
+app.post("/user/:username", getUserDetails);
 app.post("/searchUser", searchUsers);
 app.post("/notifications", DBAuth, markNotificationsRead);
 app.post("/password/reset", resetPassword); //forgot password

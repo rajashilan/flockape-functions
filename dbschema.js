@@ -25,6 +25,16 @@ let db = {
       viewCount: 10, //optional
       createdAt: 1624717777908,
       security: "private | public",
+      searchTerms: [
+        //used for searching using substrings
+        "m",
+        "my",
+        "mya",
+        "myal",
+        "myalb",
+        "myalbu",
+        "myalbum",
+      ],
     },
   ],
 

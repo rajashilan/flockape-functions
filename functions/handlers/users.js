@@ -16,6 +16,7 @@ const {
 } = require("../util/validators");
 
 const { generateRandomNumber } = require("../util/filenameGenerator");
+const e = require("express");
 
 exports.signup = (req, res) => {
   const newUser = {
@@ -165,6 +166,8 @@ exports.getAuthenticatedUser = (req, res) => {
         return db
           .collection("likesAlbum")
           .where("username", "==", req.user.username)
+          .orderBy("createdAt", "desc")
+          .limit(10)
           .get();
       }
     })
@@ -174,8 +177,22 @@ exports.getAuthenticatedUser = (req, res) => {
         userData.likesAlbum.push(doc.data());
       });
       return db
+        .collection("likesAlbum")
+        .where("username", "==", req.user.username)
+        .where("ownerusername", "==", req.user.username) //make sure this only applies to the current user's albums
+        .orderBy("albumCreatedAt", "desc")
+        .limit(10)
+        .get();
+    })
+    .then((data) => {
+      data.forEach((doc) => {
+        userData.likesAlbum.push(doc.data());
+      });
+      return db
         .collection("likesLink")
         .where("username", "==", req.user.username)
+        .orderBy("createdAt", "desc")
+        .limit(16)
         .get();
     })
     .then((data) => {
@@ -187,6 +204,7 @@ exports.getAuthenticatedUser = (req, res) => {
         .collection("notifications")
         .where("recipient", "==", req.user.username)
         .orderBy("createdAt", "desc")
+        .limit(16)
         .get();
     })
     .then((data) => {
@@ -217,17 +235,30 @@ exports.getAuthenticatedUser = (req, res) => {
 //private albums should not be shown at all since any user can see this info
 exports.getUserDetails = (req, res) => {
   let userData = {};
+  let userAlbumQuery;
+
+  if (req.body.limit) {
+    userAlbumQuery = db
+      .collection("albums")
+      .where("username", "==", req.params.username)
+      .where("security", "==", "public")
+      .orderBy("createdAt", "desc")
+      .startAfter(req.body.limit.createdAt)
+      .limit(10);
+  } else
+    userAlbumQuery = db
+      .collection("albums")
+      .where("username", "==", req.params.username)
+      .where("security", "==", "public")
+      .orderBy("createdAt", "desc")
+      .limit(10);
+
   db.doc(`/users/${req.params.username}`)
     .get()
     .then((doc) => {
       if (doc.exists) {
         userData.user = doc.data();
-        return db
-          .collection("albums")
-          .where("username", "==", req.params.username)
-          .where("security", "==", "public")
-          .orderBy("createdAt", "desc")
-          .get();
+        return userAlbumQuery.get();
       } else {
         return res.status(404).json({ error: "User not found" });
       }
@@ -246,11 +277,46 @@ exports.getUserDetails = (req, res) => {
           albumID: doc.id,
         });
       });
-      return res.json(userData);
+      if (userData.albums.length > 0) return res.json(userData);
+      else return res.status(404).json({ message: "No Books" });
     })
     .catch((error) => {
       console.error(error);
       return res.status(500).json({ error: error.code });
+    });
+};
+
+//notifications pagination
+exports.notificationPagination = (req, res) => {
+  let notificationsQuery;
+
+  if (req.body.limit) {
+    notificationsQuery = db
+      .collection("notifications")
+      .where("recipient", "==", req.user.username)
+      .orderBy("createdAt", "desc")
+      .startAfter(req.body.limit.createdAt)
+      .limit(16);
+  } else {
+    notificationsQuery = db
+      .collection("notifications")
+      .where("recipient", "==", req.user.username)
+      .orderBy("createdAt", "desc")
+      .limit(16);
+  }
+
+  notificationsQuery
+    .get()
+    .then((data) => {
+      let notifications = [];
+      data.forEach((doc) => {
+        notifications.push(doc.data());
+      });
+      if (notifications.length > 0) return res.json(notifications);
+      else return res.status(404).json({ message: "No notifications" });
+    })
+    .catch((error) => {
+      console.error(error);
     });
 };
 

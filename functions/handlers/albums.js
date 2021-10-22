@@ -48,6 +48,53 @@ exports.getAllAlbums = (req, res) => {
     });
 };
 
+//get all albums , search,  for the user
+exports.searchAllAlbums = (req, res) => {
+  let allAlbumsQuerySearch;
+  let searchQuery = req.body.search.toLowerCase();
+  searchQuery = searchQuery.replace(/\s/g, "");
+
+  if (req.body.limit) {
+    allAlbumsQuerySearch = db
+      .collection("albums")
+      .where("username", "==", req.user.username)
+      .where("searchTerms", "array-contains", searchQuery)
+      .orderBy("createdAt", "desc")
+      .startAfter(req.body.limit.createdAt)
+      .limit(10);
+  } else
+    allAlbumsQuerySearch = db
+      .collection("albums")
+      .where("username", "==", req.user.username)
+      .where("searchTerms", "array-contains", searchQuery)
+      .orderBy("createdAt", "desc")
+      .limit(10);
+
+  allAlbumsQuerySearch
+    .get()
+    .then((data) => {
+      let albums = [];
+      data.forEach((doc) => {
+        albums.push({
+          albumID: doc.id,
+          albumTitle: doc.data().albumTitle,
+          username: doc.data().username,
+          albumImg: doc.data().albumImg,
+          security: doc.data().security,
+          likeCount: doc.data().likeCount,
+          viewCount: doc.data().viewCount,
+          profileImg: doc.data().profileImg,
+          createdAt: doc.data().createdAt,
+        });
+      });
+      if (albums.length > 0) return res.json(albums);
+      else return res.status(404).json({ message: "No Books" });
+    })
+    .catch((error) => {
+      console.error(error);
+    });
+};
+
 //get an album
 exports.getAnAlbum = (req, res) => {
   let albumData = {};
@@ -144,6 +191,7 @@ exports.editAlbumDetails = (req, res) => {
   const albumDetails = {
     albumTitle: req.body.albumTitle,
     security: req.body.security,
+    searchTerms: [],
   };
 
   let securityChanged = false;
@@ -151,6 +199,22 @@ exports.editAlbumDetails = (req, res) => {
   const { valid, errors } = validateAlbumTitle(albumDetails.albumTitle);
 
   if (!valid) return res.status(400).json(errors);
+
+  let albumTitle = albumDetails.albumTitle.toLowerCase();
+  albumTitle = albumTitle.replace(/\s/g, "");
+
+  let index = 1;
+  let iterate = albumTitle.length;
+
+  if (iterate > 30) iterate = 30; //make sure maximum is 30
+
+  const searchTerm = [];
+
+  for (index; index <= iterate; index++) {
+    searchTerm.push(albumTitle.substring(0, index));
+  }
+
+  albumDetails.searchTerms = searchTerm;
 
   db.doc(`/albums/${req.params.albumID}`)
     .get()
@@ -216,11 +280,28 @@ exports.createAnAlbum = (req, res) => {
     createdAt: new Date().getTime(),
     likeCount: 0,
     viewCount: 1,
+    searchTerms: [],
   };
 
   const { valid, errors } = validateAlbumTitle(newAlbum.albumTitle);
 
   if (!valid) return res.status(400).json(errors);
+
+  let albumTitle = newAlbum.albumTitle.toLowerCase();
+  albumTitle = albumTitle.replace(/\s/g, "");
+
+  let index = 1;
+  let iterate = albumTitle.length;
+
+  if (iterate > 30) iterate = 30; //make sure maximum is 30
+
+  const searchTerm = [];
+
+  for (index; index <= iterate; index++) {
+    searchTerm.push(albumTitle.substring(0, index));
+  }
+
+  newAlbum.searchTerms = searchTerm;
 
   //make sure user is verified before allowing user to create an album
   if (!req.user.email_verified)
@@ -272,8 +353,10 @@ exports.likeAlbum = (req, res) => {
           .add({
             albumID: req.params.albumID,
             username: req.user.username,
+            ownerusername: albumData.username,
             profileImg: req.user.profileImg,
             createdAt: new Date().getTime(),
+            albumCreatedAt: albumData.createdAt,
           })
           .then(() => {
             albumData.likeCount++;
@@ -409,6 +492,65 @@ exports.getLikedAlbums = (req, res) => {
     .catch((error) => {
       console.error(error);
       return res.status(500).json({ general: "Error getting liked Books" });
+    });
+};
+
+//album likes pagination for albums created by other users
+exports.getLikesAlbumGeneralPagination = (req, res) => {
+  let paginate;
+
+  if (req.body.limit.albumDocCreatedAt) {
+    paginate = req.body.limit.albumDocCreatedAt;
+  } else {
+    return res.status(404).json({ message: "No liked books found" });
+  }
+
+  db.collection("likesAlbum")
+    .where("username", "==", req.user.username)
+    .orderBy("createdAt", "desc")
+    .startAfter(paginate)
+    .limit(10)
+    .get()
+    .then((data) => {
+      let likesAlbum = [];
+      data.forEach((doc) => {
+        likesAlbum.push(doc.data());
+      });
+      if (likesAlbum.length > 0) return res.json(likesAlbum);
+      else return res.status(404).json({ message: "No liked books found" });
+    })
+    .catch((error) => {
+      console.error(error);
+    });
+};
+
+//album like pagination for albums created by authenticated user
+exports.getLikesAlbumUserPagination = (req, res) => {
+  let paginate;
+
+  if (req.body.limit.createdAt) {
+    paginate = req.body.limit.createdAt;
+  } else {
+    return res.status(404).json({ message: "No liked books found" });
+  }
+
+  db.collection("likesAlbum")
+    .where("username", "==", req.user.username)
+    .where("ownerusername", "==", req.user.username)
+    .orderBy("albumCreatedAt", "desc")
+    .startAfter(paginate)
+    .limit(10)
+    .get()
+    .then((data) => {
+      let likesAlbum = [];
+      data.forEach((doc) => {
+        likesAlbum.push(doc.data());
+      });
+      if (likesAlbum.length > 0) return res.json(likesAlbum);
+      else return res.status(404).json({ message: "No liked books found" });
+    })
+    .catch((error) => {
+      console.error(error);
     });
 };
 

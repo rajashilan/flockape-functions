@@ -219,6 +219,7 @@ exports.likeLink = (req, res) => {
             username: req.user.username,
             createdAt: new Date().getTime(),
             profileImg: req.user.profileImg,
+            linkCreatedAt: linkData.createdAt,
           })
           .then(() => {
             linkData.likeCount++;
@@ -360,6 +361,34 @@ exports.getLikedLinks = (req, res) => {
     .catch((error) => {
       console.error(error);
       return res.status(500).json({ general: "Error getting liked pages" });
+    });
+};
+
+exports.getLikesLinkPagination = (req, res) => {
+  let paginate;
+
+  if (req.body.limit.linkDocCreatedAt) {
+    paginate = req.body.limit.linkDocCreatedAt;
+  } else {
+    return res.status(404).json({ message: "No liked pages found" });
+  }
+
+  db.collection("likesLink")
+    .where("username", "==", req.user.username)
+    .orderBy("createdAt", "desc")
+    .startAfter(paginate)
+    .limit(16)
+    .get()
+    .then((data) => {
+      let likesLink = [];
+      data.forEach((doc) => {
+        likesLink.push(doc.data());
+      });
+      if (likesLink.length > 0) return res.json(likesLink);
+      else return res.status(404).json({ message: "No liked pages found" });
+    })
+    .catch((error) => {
+      console.error(error);
     });
 };
 
