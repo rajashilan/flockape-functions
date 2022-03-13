@@ -4,6 +4,9 @@ const config = require("../util/config");
 const { validateAlbumTitle } = require("../util/validators");
 
 const { generateRandomNumber } = require("../util/filenameGenerator");
+const {
+  exampleUserRecord,
+} = require("firebase-functions-test/lib/providers/auth");
 
 //get all albums for the user
 exports.getAllAlbums = (req, res) => {
@@ -99,6 +102,18 @@ exports.searchAllAlbums = (req, res) => {
 exports.getAnAlbum = (req, res) => {
   let albumData = {};
 
+  //if request.body.limit
+  //use an if else statement, if none, use normal code, limit links to 16
+  //if yes, just take the album id and the limit, and use the limit to start after, limit to 16
+  //send the response to the front end, but in a different name?
+  //in the front end, in data actions, if the action.payload has that particular name,
+  //use an if else statement, if no, continue as normal
+  //if yes, let the album state remain as is, and just spread the album's links state, and add
+  //basically the same procedure as other paginations done before
+
+  //get album's details with the first 10 links
+  console.log("no limit");
+  console.log("limit:", req.body);
   //get the particular album's data
   db.doc(`/albums/${req.params.albumID}`)
     .get()
@@ -136,6 +151,7 @@ exports.getAnAlbum = (req, res) => {
         .collection("links")
         .orderBy("createdAt", "desc")
         .where("albumID", "==", req.params.albumID)
+        .limit(16)
         .get();
     })
     .then((data) => {
@@ -147,12 +163,109 @@ exports.getAnAlbum = (req, res) => {
         };
         albumData.links.push(linkObject);
       });
+      //return res.json(albumData);
+
+      //for enabling the front end to check if the album in the album details page is liked by user, after pagination
+      return db
+        .collection("likesAlbum")
+        .where("username", "==", req.user.username)
+        .where("albumID", "==", req.params.albumID)
+        .get();
+    })
+    .then((data) => {
+      //for enabling the front end to check if the album in the album details page is liked by user, after pagination
+      data.forEach((doc) => {
+        if (doc.exists) {
+          albumData.isLiked = true;
+        } else {
+          albumData.isLiked = false;
+        }
+      });
+
+      return db
+        .collection("likesLink")
+        .orderBy("createdAt", "desc")
+        .where("username", "==", req.user.username)
+        .where("albumID", "==", req.params.albumID)
+        .limit(16)
+        .get();
+
+      //return res.json(albumData);
+    })
+    .then((data) => {
+      albumData.likedLinks = [];
+      data.forEach((doc) => {
+        const likedLinkObject = {
+          ...doc.data(),
+        };
+        albumData.likedLinks.push(likedLinkObject);
+      });
+
       return res.json(albumData);
     })
     .catch((error) => {
       console.error(error);
       res.status(500).json({ error: error.code });
     });
+};
+
+exports.getAnAlbumDetailLinks = (req, res) => {
+  //get album detail's other 16 links for pagination (continuation of getAnAlbum function)
+  //also get album detail's other 16 likes links for pagination
+
+  let albumDetailLinksData = {};
+
+  if (req.body.limit) {
+    db.collection("links")
+      .orderBy("createdAt", "desc")
+      .where("albumID", "==", req.params.albumID)
+      .startAfter(req.body.limit.createdAt)
+      .limit(16)
+      .get()
+      .then((data) => {
+        albumDetailLinksData.links = [];
+        data.forEach((doc) => {
+          const linkObject = {
+            ...doc.data(),
+            linkID: doc.id,
+          };
+          albumDetailLinksData.links.push(linkObject);
+        });
+
+        //to get the album detail link's likes link pagination
+        if (req.body.limitLikedLinks && albumDetailLinksData.links.length > 0) {
+          db.collection("likesLink")
+            .orderBy("createdAt", "desc")
+            .where("username", "==", req.user.username)
+            .where("albumID", "==", req.params.albumID)
+            .startAfter(req.body.limitLikedLinks.createdAt)
+            .limit(16)
+            .get()
+            .then((data) => {
+              albumDetailLinksData.likedLinks = [];
+              data.forEach((doc) => {
+                const likedLinkObject = {
+                  ...doc.data(),
+                };
+                albumDetailLinksData.likedLinks.push(likedLinkObject);
+              });
+              if (albumDetailLinksData.links.length > 0)
+                return res.json(albumDetailLinksData);
+              else return res.status(404).json({ message: "No Pages" });
+            })
+            .catch((error) => {
+              console.error(error);
+            });
+        } else {
+          if (albumDetailLinksData.links.length > 0)
+            return res.json(albumDetailLinksData);
+          else return res.status(404).json({ message: "No Pages" });
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }
 };
 
 //get one album and the album only after changes are made
@@ -546,6 +659,7 @@ exports.getLikesAlbumUserPagination = (req, res) => {
       data.forEach((doc) => {
         likesAlbum.push(doc.data());
       });
+      console.log(likesAlbum);
       if (likesAlbum.length > 0) return res.json(likesAlbum);
       else return res.status(404).json({ message: "No liked books found" });
     })

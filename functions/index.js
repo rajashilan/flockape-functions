@@ -12,6 +12,7 @@ const {
   getAllAlbums,
   searchAllAlbums,
   getAnAlbum,
+  getAnAlbumDetailLinks,
   getOneAlbum,
   editAlbumDetails,
   createAnAlbum,
@@ -71,6 +72,7 @@ app.post("/albums", DBAuth, getAllAlbums); //gets all the albums for the user
 app.post("/searchAlbums", DBAuth, searchAllAlbums); //user searches for all their own albums
 app.post("/album/:albumID", DBAuth, editAlbumDetails); //edit album details
 app.get("/album/:albumID", DBSelectedAuth, getAnAlbum); //get a particular album and its links
+app.post("/albumDetailLinks/:albumID", DBSelectedAuth, getAnAlbumDetailLinks); //get the links pagination for an album detail
 app.get("/album/:albumID/one", DBSelectedAuth, getOneAlbum); //get the album after changes are made
 app.post("/createAlbum", DBAuth, createAnAlbum); //-------------------------------------------------------verification required
 app.post("/album/:albumID/image", DBAuth, uploadAlbumImage); //user can use this to change album image even later (editing)
@@ -87,7 +89,7 @@ app.delete("/album/:albumID", DBAuth, deleteAlbum);
 //link routes REMEMBER TO ADD IMAGE----------
 app.post("/getLinks", DBAuth, getAllLinks); //gets all the links for the album //not to be used in production
 app.post("/createLink", DBAuth, createALink);
-app.get("/link/:linkID/like", DBAuth, likeLink); //like and unlike handled in the same route
+app.post("/link/:linkID/like", DBAuth, likeLink); //like and unlike handled in the same route
 app.post("/getLikedLinks", DBAuth, getLikedLinks); //get a user's liked links
 app.post("/getLikedLinkPagination", DBAuth, getLikesLinkPagination); //get a user's liked albums
 app.delete("/link/:linkID", DBAuth, deleteLink);

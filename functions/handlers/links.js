@@ -188,6 +188,7 @@ exports.createLinkFrontEnd = (req, res) => {
 
 //like a link
 exports.likeLink = (req, res) => {
+  console.log("albumID: ", req.body.albumID);
   const likeLinkDocument = db
     .collection("likesLink")
     .where("username", "==", req.user.username)
@@ -216,6 +217,7 @@ exports.likeLink = (req, res) => {
           .collection("likesLink")
           .add({
             linkID: req.params.linkID,
+            albumID: req.body.albumID,
             username: req.user.username,
             createdAt: new Date().getTime(),
             profileImg: req.user.profileImg,
@@ -316,6 +318,7 @@ exports.getLikedLinks = (req, res) => {
                 createdAt: doc.data().createdAt,
                 security: doc.data().security,
                 linkDocCreatedAt: id.linkDocCreatedAt,
+                albumID: doc.data().albumID,
               };
             }
             index++;
