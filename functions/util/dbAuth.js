@@ -8,8 +8,8 @@ module.exports = (req, res, next) => {
     //get the id token from the header
     idToken = req.headers.authorization.split("Bearer ")[1];
   } else {
-    console.error("No token found");
-    return res.status(403).json({ error: "Unauthorized" });
+    console.error("No token found db auth");
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   //check whether the id token is from our database
@@ -20,7 +20,7 @@ module.exports = (req, res, next) => {
     .then((decodedToken) => {
       //check if user is verified
       // if (!decodedToken.email_verified) {
-      //   return res.status(403).json({ general: "Please verify your email" });
+      //   return res.status(401).json({ general: "Please verify your email" });
       // }
 
       req.user = decodedToken;
@@ -39,6 +39,6 @@ module.exports = (req, res, next) => {
     })
     .catch((error) => {
       console.error("Error while verifying token", error);
-      return res.status(403).json({ error });
+      return res.status(401).json({ error });
     });
 };

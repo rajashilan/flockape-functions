@@ -12,6 +12,9 @@ let db = {
       createdAt: 341234352342342,
       birthday: "5/7/1999",
       age: "22", //(calculated using birthday)
+      books: 10, //all these to be used to display in profiles
+      follows: 13,
+      views: 123,
     },
   ],
 
@@ -82,13 +85,17 @@ let db = {
       likesAlbum: [
         {
           username: "otheruser",
+          ownerusername: "original album creator", //this is used when sorting using albumdoccreatedby, ensures it only applies to user's own albums
           albumID: "asdklnasdk323",
           createdAt: 341234352342342,
+          albumCreatedAt: 341234352342342, //for pagination purposes
         },
         {
           username: "anotheruser",
+          ownerusername: "original album creator", //this is used when sorting using albumdoccreatedby, ensures it only applies to user's own albums
           albumID: "qweio232ksskld",
           createdAt: 341234352342342,
+          albumCreatedAt: 341234352342342,
         },
       ],
       likesLink: [
@@ -97,12 +104,14 @@ let db = {
           linkID: "asdklnasdk323",
           albumID: "qweio232ksskld",
           createdAt: 341234352342342,
+          linkCreatedAt: 341234352342342,
         },
         {
           username: "anotheruser",
           linkID: "qweio232ksskld",
           albumID: "qweio232ksskld",
           createdAt: 341234352342342,
+          linkCreatedAt: 341234352342342,
         },
       ],
     },

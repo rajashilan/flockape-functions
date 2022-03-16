@@ -49,6 +49,7 @@ exports.signup = (req, res) => {
 
   //check if username already exists before registering user (email will be taken care of by firebase)
   let token, userID;
+  let tokens = {};
   db.doc(`/users/${newUser.username}`)
     .get()
     .then((doc) => {
@@ -64,10 +65,12 @@ exports.signup = (req, res) => {
     })
     .then((data) => {
       userID = data.user.uid;
+      tokens.refreshToken = data.user.refreshToken;
       return data.user.getIdToken();
     })
     .then((idToken) => {
       token = idToken;
+      tokens.idToken = token;
       const userCredentials = {
         username: newUser.username,
         email: newUser.email,
@@ -76,6 +79,9 @@ exports.signup = (req, res) => {
         userID,
         fullName: newUser.fullName,
         birthday: newUser.birthday,
+        books: 0,
+        follows: 0,
+        views: 0,
       };
 
       //create a new document for the user under the 'users' collection using the data recieved
@@ -86,7 +92,7 @@ exports.signup = (req, res) => {
         .auth()
         .currentUser.sendEmailVerification()
         .then(() => {
-          return res.status(201).json({ token });
+          return res.status(201).json(tokens);
         });
     })
     .catch((error) => {
@@ -112,16 +118,22 @@ exports.login = (req, res) => {
 
   if (!valid) return res.status(400).json(errors);
 
+  let tokens = {};
+
   //sign in user
   firebase
     .auth()
     .signInWithEmailAndPassword(user.email, user.password)
     .then((data) => {
-      // console.log("dataAAAA:::::", data.user.refreshToken);
+      //console.log("refresh token: ", data.user.refreshToken);
+      tokens.refreshToken = data.user.refreshToken;
       return data.user.getIdToken();
     })
     .then((token) => {
-      return res.json({ token });
+      //console.log("idtoken: ", token);
+      tokens.idToken = token;
+      //console.log("tokens object: ", tokens);
+      return res.json(tokens);
     })
     .catch((error) => {
       console.error(error);
