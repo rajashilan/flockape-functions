@@ -98,6 +98,86 @@ exports.searchAllAlbums = (req, res) => {
     });
 };
 
+//get liked albums searched by user (incl user's albums and other users' albums)
+exports.searchLikedAlbums = (req, res) => {
+  let likedAlbumsID = [];
+  let albums = [];
+  let index = 0;
+
+  let likedAlbumsQuerySearch;
+  let searchQuery = req.body.search.toLowerCase();
+  searchQuery = searchQuery.replace(/\s/g, "");
+
+  if (req.body.limit) {
+    likedAlbumsQuerySearch = db
+      .collection("likesAlbum")
+      .where("username", "==", req.user.username)
+      .where("searchTerms", "array-contains", searchQuery)
+      .orderBy("createdAt", "desc")
+      .startAfter(req.body.limit.albumDocCreatedAt)
+      .limit(10);
+  } else
+    likedAlbumsQuerySearch = db
+      .collection("likesAlbum")
+      .where("username", "==", req.user.username)
+      .where("searchTerms", "array-contains", searchQuery)
+      .orderBy("createdAt", "desc")
+      .limit(10);
+
+  likedAlbumsQuerySearch
+    .get()
+    .then((data) => {
+      data.forEach((doc) => {
+        likedAlbumsID.push({
+          albumID: doc.data().albumID,
+          albumDocCreatedAt: doc.data().createdAt,
+        });
+      });
+
+      return likedAlbumsID;
+    })
+    .then((albumID) => {
+      //if there are no liked albums id, there are no liked albums for the user, so return
+      if (albumID.length == 0) {
+        return res.status(404).json({ message: "No liked Books" });
+      }
+
+      for (let [indexForEach, id] of albumID.entries()) {
+        let tempIndex = indexForEach;
+        db.doc(`/albums/${id.albumID}`)
+          .get()
+          .then((doc) => {
+            if (
+              doc.data().security == "private" &&
+              doc.data().username !== req.user.username
+            ) {
+            } else {
+              albums[tempIndex] = {
+                albumID: doc.id,
+                albumTitle: doc.data().albumTitle,
+                username: doc.data().username,
+                albumImg: doc.data().albumImg,
+                likeCount: doc.data().likeCount,
+                viewCount: doc.data().viewCount,
+                profileImg: doc.data().profileImg,
+                createdAt: doc.data().createdAt,
+                security: doc.data().security,
+                albumDocCreatedAt: id.albumDocCreatedAt,
+              };
+            }
+            index++;
+          })
+          .then(() => {
+            //return only after reaching the end of the for loop
+            if (index == albumID.length) return res.json(albums);
+          });
+      }
+    })
+    .catch((error) => {
+      console.error(error);
+    });
+};
+
 //get an album
 exports.getAnAlbum = (req, res) => {
   let albumData = {};
@@ -470,6 +550,7 @@ exports.likeAlbum = (req, res) => {
             profileImg: req.user.profileImg,
             createdAt: new Date().getTime(),
             albumCreatedAt: albumData.createdAt,
+            searchTerms: albumData.searchTerms,
           })
           .then(() => {
             albumData.likeCount++;
@@ -621,7 +702,7 @@ exports.getLikesAlbumGeneralPagination = (req, res) => {
   db.collection("likesAlbum")
     .where("username", "==", req.user.username)
     .orderBy("createdAt", "desc")
-    .startAfter(paginate)
+    .startAt(paginate)
     .limit(10)
     .get()
     .then((data) => {
@@ -651,7 +732,7 @@ exports.getLikesAlbumUserPagination = (req, res) => {
     .where("username", "==", req.user.username)
     .where("ownerusername", "==", req.user.username)
     .orderBy("albumCreatedAt", "desc")
-    .startAfter(paginate)
+    .startAt(paginate)
     .limit(10)
     .get()
     .then((data) => {

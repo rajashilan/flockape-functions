@@ -298,6 +298,61 @@ exports.getUserDetails = (req, res) => {
     });
 };
 
+//get searched albums from another user page
+exports.getUserDetailsSearchedAlbum = (req, res) => {
+  console.log("hello");
+  let userData = {};
+  let userAlbumQuery;
+
+  let searchQuery = req.body.search.toLowerCase();
+  searchQuery = searchQuery.replace(/\s/g, "");
+
+  console.log(searchQuery);
+
+  if (req.body.limit) {
+    userAlbumQuery = db
+      .collection("albums")
+      .where("username", "==", req.params.username)
+      .where("security", "==", "public")
+      .where("searchTerms", "array-contains", searchQuery)
+      .orderBy("createdAt", "desc")
+      .startAfter(req.body.limit.createdAt)
+      .limit(10);
+  } else
+    userAlbumQuery = db
+      .collection("albums")
+      .where("username", "==", req.params.username)
+      .where("security", "==", "public")
+      .where("searchTerms", "array-contains", searchQuery)
+      .orderBy("createdAt", "desc")
+      .limit(10);
+
+  userAlbumQuery
+    .get()
+    .then((data) => {
+      userData.searchedAlbums = [];
+      data.forEach((doc) => {
+        userData.searchedAlbums.push({
+          albumTitle: doc.data().albumTitle,
+          albumImg: doc.data().albumImg,
+          likeCount: doc.data().likeCount,
+          viewCount: doc.data().viewCount,
+          createdAt: doc.data().createdAt,
+          username: doc.data().username,
+          profileImg: doc.data().profileImg,
+          albumID: doc.id,
+        });
+      });
+      console.log("another user profile album search result:", userData);
+      if (userData.searchedAlbums.length > 0) return res.json(userData);
+      else return res.status(404).json({ message: "No Books" });
+    })
+    .catch((error) => {
+      console.error(error);
+      return res.status(500).json({ error: error.code });
+    });
+};
+
 //notifications pagination
 exports.notificationPagination = (req, res) => {
   let notificationsQuery;

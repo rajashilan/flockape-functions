@@ -11,6 +11,7 @@ const { db } = require("./util/admin");
 const {
   getAllAlbums,
   searchAllAlbums,
+  searchLikedAlbums,
   getAnAlbum,
   getAnAlbumDetailLinks,
   getOneAlbum,
@@ -42,6 +43,7 @@ const {
   getAuthenticatedUser,
   notificationPagination,
   getUserDetails,
+  getUserDetailsSearchedAlbum,
   searchUsers,
   markNotificationsRead,
   resetPassword,
@@ -70,6 +72,7 @@ app.use(cors());
 //image will be taken from req.body.albumID
 app.post("/albums", DBAuth, getAllAlbums); //gets all the albums for the user
 app.post("/searchAlbums", DBAuth, searchAllAlbums); //user searches for all their own albums
+app.post("/searchLikedAlbums", DBAuth, searchLikedAlbums); //user searches for their liked albums
 app.post("/album/:albumID", DBAuth, editAlbumDetails); //edit album details
 app.get("/album/:albumID", DBSelectedAuth, getAnAlbum); //get a particular album and its links
 app.post("/albumDetailLinks/:albumID", DBSelectedAuth, getAnAlbumDetailLinks); //get the links pagination for an album detail
@@ -107,6 +110,7 @@ app.post("/user", DBAuth, addUserDetails);
 app.get("/user", DBAuth, getAuthenticatedUser);
 app.post("/user/notifications", DBAuth, notificationPagination);
 app.post("/user/:username", getUserDetails);
+app.post("/user/:username/search", getUserDetailsSearchedAlbum);
 app.post("/searchUser", searchUsers);
 app.post("/notifications", DBAuth, markNotificationsRead);
 app.post("/password/reset", resetPassword); //forgot password
