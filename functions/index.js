@@ -34,6 +34,7 @@ const {
   getLikedLinks,
   getLikesLinkPagination,
   deleteLink,
+  getSearchedLikedLinks,
 } = require("./handlers/links");
 const {
   signup,
@@ -94,7 +95,8 @@ app.post("/getLinks", DBAuth, getAllLinks); //gets all the links for the album /
 app.post("/createLink", DBAuth, createALink);
 app.post("/link/:linkID/like", DBAuth, likeLink); //like and unlike handled in the same route
 app.post("/getLikedLinks", DBAuth, getLikedLinks); //get a user's liked links
-app.post("/getLikedLinkPagination", DBAuth, getLikesLinkPagination); //get a user's liked albums
+app.post("/searchLikedLinks", DBAuth, getSearchedLikedLinks); // get the user's searched liked links
+app.post("/getLikedLinkPagination", DBAuth, getLikesLinkPagination);
 app.delete("/link/:linkID", DBAuth, deleteLink);
 
 //******USER HAS TO BE LOGGED IN AND AUTHENTICATED INCLUDING ALBUM ID TO BE ABLE TO REQUEST FOR URL DATA*******

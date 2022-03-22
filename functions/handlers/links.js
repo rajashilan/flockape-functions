@@ -188,7 +188,7 @@ exports.createLinkFrontEnd = (req, res) => {
 
 //like a link
 exports.likeLink = (req, res) => {
-  console.log("albumID: ", req.body.albumID);
+  console.log(req.body);
   const likeLinkDocument = db
     .collection("likesLink")
     .where("username", "==", req.user.username)
@@ -205,6 +205,7 @@ exports.likeLink = (req, res) => {
       if (doc.exists) {
         linkData = doc.data();
         linkData.linkID = doc.id;
+        linkData.searchTerms = [];
 
         return likeLinkDocument.get();
       } else {
@@ -213,6 +214,22 @@ exports.likeLink = (req, res) => {
     })
     .then((data) => {
       if (data.empty) {
+        let linkTitle = req.body.linkTitle.toLowerCase();
+        linkTitle = linkTitle.replace(/\s/g, "");
+
+        let index = 1;
+        let iterate = linkTitle.length;
+
+        if (iterate > 30) iterate = 30; //make sure maximum is 30
+
+        const searchTerm = [];
+
+        for (index; index <= iterate; index++) {
+          searchTerm.push(linkTitle.substring(0, index));
+        }
+
+        linkData.searchTerms = searchTerm;
+
         return db
           .collection("likesLink")
           .add({
@@ -222,6 +239,7 @@ exports.likeLink = (req, res) => {
             createdAt: new Date().getTime(),
             profileImg: req.user.profileImg,
             linkCreatedAt: linkData.createdAt,
+            searchTerms: linkData.searchTerms,
           })
           .then(() => {
             linkData.likeCount++;
@@ -367,6 +385,94 @@ exports.getLikedLinks = (req, res) => {
     });
 };
 
+//get the user's searched liked links
+exports.getSearchedLikedLinks = (req, res) => {
+  let likedLinksID = [];
+  let links = [];
+  let index = 0;
+
+  let likedLinksQuerySearch;
+  let searchQuery = req.body.search.toLowerCase();
+  searchQuery = searchQuery.replace(/\s/g, "");
+
+  if (req.body.limit) {
+    likedLinksQuerySearch = db
+      .collection("likesLink")
+      .where("username", "==", req.user.username)
+      .where("searchTerms", "array-contains", searchQuery)
+      .orderBy("createdAt", "desc")
+      .startAfter(req.body.limit.linkDocCreatedAt)
+      .limit(16);
+  } else
+    likedLinksQuerySearch = db
+      .collection("likesLink")
+      .where("username", "==", req.user.username)
+      .where("searchTerms", "array-contains", searchQuery)
+      .orderBy("createdAt", "desc")
+      .limit(16);
+
+  likedLinksQuerySearch
+    .get()
+    .then((data) => {
+      data.forEach((doc) => {
+        likedLinksID.push({
+          linkID: doc.data().linkID,
+          linkDocCreatedAt: doc.data().createdAt,
+        });
+      });
+
+      return likedLinksID;
+    })
+    .then((linkID) => {
+      //if there are no liked links id, there are no liked links for the user, so return
+      if (linkID.length == 0) {
+        console.log("404");
+        return res.status(404).json({ message: "No liked pages" });
+      }
+
+      //linkID has the blueprint to how the links should actually be arranged
+      for (let [indexForEach, id] of linkID.entries()) {
+        //get the index of the current loop
+        //so that the link will be stored at the correct index in the array
+        let tempIndex = indexForEach;
+        db.doc(`/links/${id.linkID}`)
+          .get()
+          .then((doc) => {
+            if (
+              doc.data().security == "private" &&
+              doc.data().username !== req.user.username
+            ) {
+              //dont push anything
+            } else {
+              links[tempIndex] = {
+                linkID: doc.id,
+                linkTitle: doc.data().linkTitle,
+                linkDesc: doc.data().linkDesc,
+                linkImg: doc.data().linkImg,
+                linkUrl: doc.data().linkUrl,
+                username: doc.data().username,
+                likeCount: doc.data().likeCount,
+                createdAt: doc.data().createdAt,
+                security: doc.data().security,
+                linkDocCreatedAt: id.linkDocCreatedAt,
+                albumID: doc.data().albumID,
+              };
+            }
+            index++;
+          })
+          .then(() => {
+            //return only after reaching the end of the for loop
+            if (index == linkID.length) return res.json(links);
+          });
+      }
+    })
+    .catch((error) => {
+      console.error(error);
+      return res.status(500).json({ general: "Error getting liked pages" });
+    });
+};
+
+//for get checked liked links in the front end
 exports.getLikesLinkPagination = (req, res) => {
   let paginate;
 

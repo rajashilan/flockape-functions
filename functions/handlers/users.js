@@ -300,14 +300,11 @@ exports.getUserDetails = (req, res) => {
 
 //get searched albums from another user page
 exports.getUserDetailsSearchedAlbum = (req, res) => {
-  console.log("hello");
   let userData = {};
   let userAlbumQuery;
 
   let searchQuery = req.body.search.toLowerCase();
   searchQuery = searchQuery.replace(/\s/g, "");
-
-  console.log(searchQuery);
 
   if (req.body.limit) {
     userAlbumQuery = db
@@ -343,7 +340,6 @@ exports.getUserDetailsSearchedAlbum = (req, res) => {
           albumID: doc.id,
         });
       });
-      console.log("another user profile album search result:", userData);
       if (userData.searchedAlbums.length > 0) return res.json(userData);
       else return res.status(404).json({ message: "No Books" });
     })

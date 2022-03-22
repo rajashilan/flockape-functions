@@ -89,6 +89,16 @@ let db = {
           albumID: "asdklnasdk323",
           createdAt: 341234352342342,
           albumCreatedAt: 341234352342342, //for pagination purposes
+          searchTerms: [
+            //used for searching using substrings
+            "m",
+            "my",
+            "mya",
+            "myal",
+            "myalb",
+            "myalbu",
+            "myalbum",
+          ],
         },
         {
           username: "anotheruser",
@@ -96,6 +106,16 @@ let db = {
           albumID: "qweio232ksskld",
           createdAt: 341234352342342,
           albumCreatedAt: 341234352342342,
+          searchTerms: [
+            //used for searching using substrings
+            "m",
+            "my",
+            "mya",
+            "myal",
+            "myalb",
+            "myalbu",
+            "myalbum",
+          ],
         },
       ],
       likesLink: [
@@ -105,6 +125,16 @@ let db = {
           albumID: "qweio232ksskld",
           createdAt: 341234352342342,
           linkCreatedAt: 341234352342342,
+          searchTerms: [
+            //used for searching using substrings
+            "m",
+            "my",
+            "mya",
+            "myal",
+            "myalb",
+            "myalbu",
+            "myalbum",
+          ],
         },
         {
           username: "anotheruser",
@@ -112,6 +142,16 @@ let db = {
           albumID: "qweio232ksskld",
           createdAt: 341234352342342,
           linkCreatedAt: 341234352342342,
+          searchTerms: [
+            //used for searching using substrings
+            "m",
+            "my",
+            "mya",
+            "myal",
+            "myalb",
+            "myalbu",
+            "myalbum",
+          ],
         },
       ],
     },
