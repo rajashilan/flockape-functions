@@ -139,38 +139,106 @@ exports.searchLikedAlbums = (req, res) => {
     .then((albumID) => {
       //if there are no liked albums id, there are no liked albums for the user, so return
       if (albumID.length == 0) {
-        return res.status(404).json({ message: "No liked Books" });
-      }
+        //query using owner's username first before responding with 404
 
-      for (let [indexForEach, id] of albumID.entries()) {
-        let tempIndex = indexForEach;
-        db.doc(`/albums/${id.albumID}`)
+        let likedAlbumsQueryOwnerusernameSearch;
+
+        if (req.body.limit) {
+          likedAlbumsQueryOwnerusernameSearch = db
+            .collection("likesAlbum")
+            .where("username", "==", req.user.username)
+            .where("ownerusernameSearchTerms", "array-contains", searchQuery)
+            .orderBy("createdAt", "desc")
+            .startAfter(req.body.limit.albumDocCreatedAt)
+            .limit(10);
+        } else
+          likedAlbumsQueryOwnerusernameSearch = db
+            .collection("likesAlbum")
+            .where("username", "==", req.user.username)
+            .where("ownerusernameSearchTerms", "array-contains", searchQuery)
+            .orderBy("createdAt", "desc")
+            .limit(10);
+
+        likedAlbumsQueryOwnerusernameSearch
           .get()
-          .then((doc) => {
-            if (
-              doc.data().security == "private" &&
-              doc.data().username !== req.user.username
-            ) {
-            } else {
-              albums[tempIndex] = {
-                albumID: doc.id,
-                albumTitle: doc.data().albumTitle,
-                username: doc.data().username,
-                albumImg: doc.data().albumImg,
-                likeCount: doc.data().likeCount,
-                viewCount: doc.data().viewCount,
-                profileImg: doc.data().profileImg,
-                createdAt: doc.data().createdAt,
-                security: doc.data().security,
-                albumDocCreatedAt: id.albumDocCreatedAt,
-              };
-            }
-            index++;
+          .then((data) => {
+            data.forEach((doc) => {
+              likedAlbumsID.push({
+                albumID: doc.data().albumID,
+                albumDocCreatedAt: doc.data().createdAt,
+              });
+            });
+
+            return likedAlbumsID;
           })
-          .then(() => {
-            //return only after reaching the end of the for loop
-            if (index == albumID.length) return res.json(albums);
+          .then((albumID) => {
+            if (albumID.length == 0) {
+              //if still empty, return 404
+              return res.status(404).json({ message: "No liked Books" });
+            }
+
+            for (let [indexForEach, id] of albumID.entries()) {
+              let tempIndex = indexForEach;
+              db.doc(`/albums/${id.albumID}`)
+                .get()
+                .then((doc) => {
+                  if (
+                    doc.data().security == "private" &&
+                    doc.data().username !== req.user.username
+                  ) {
+                  } else {
+                    albums[tempIndex] = {
+                      albumID: doc.id,
+                      albumTitle: doc.data().albumTitle,
+                      username: doc.data().username,
+                      albumImg: doc.data().albumImg,
+                      likeCount: doc.data().likeCount,
+                      viewCount: doc.data().viewCount,
+                      profileImg: doc.data().profileImg,
+                      createdAt: doc.data().createdAt,
+                      security: doc.data().security,
+                      albumDocCreatedAt: id.albumDocCreatedAt,
+                    };
+                  }
+                  index++;
+                })
+                .then(() => {
+                  //return only after reaching the end of the for loop
+                  if (index == albumID.length) return res.json(albums);
+                });
+            }
           });
+      } else {
+        for (let [indexForEach, id] of albumID.entries()) {
+          let tempIndex = indexForEach;
+          db.doc(`/albums/${id.albumID}`)
+            .get()
+            .then((doc) => {
+              if (
+                doc.data().security == "private" &&
+                doc.data().username !== req.user.username
+              ) {
+              } else {
+                albums[tempIndex] = {
+                  albumID: doc.id,
+                  albumTitle: doc.data().albumTitle,
+                  username: doc.data().username,
+                  albumImg: doc.data().albumImg,
+                  likeCount: doc.data().likeCount,
+                  viewCount: doc.data().viewCount,
+                  profileImg: doc.data().profileImg,
+                  createdAt: doc.data().createdAt,
+                  security: doc.data().security,
+                  albumDocCreatedAt: id.albumDocCreatedAt,
+                };
+              }
+              index++;
+            })
+            .then(() => {
+              //return only after reaching the end of the for loop
+              if (index == albumID.length) return res.json(albums);
+            });
+        }
       }
     })
     .catch((error) => {
@@ -192,8 +260,6 @@ exports.getAnAlbum = (req, res) => {
   //basically the same procedure as other paginations done before
 
   //get album's details with the first 10 links
-  console.log("no limit");
-  console.log("limit:", req.body);
   //get the particular album's data
   db.doc(`/albums/${req.params.albumID}`)
     .get()
@@ -346,6 +412,84 @@ exports.getAnAlbumDetailLinks = (req, res) => {
         console.error(error);
       });
   }
+};
+
+exports.searchAnAlbumDetailLinks = (req, res) => {
+  //search for the links in an album detail
+
+  let albumDetailSearchedLinksData = {};
+  let albumDetailSearchedLinksQuery;
+
+  let searchQuery = req.body.search.toLowerCase();
+  searchQuery = searchQuery.replace(/\s/g, "");
+
+  if (req.body.limit) {
+    albumDetailSearchedLinksQuery = db
+      .collection("links")
+      .orderBy("createdAt", "desc")
+      .where("albumID", "==", req.body.albumID)
+      .where("searchTerms", "array-contains", searchQuery)
+      .startAfter(req.body.limit.createdAt)
+      .limit(16);
+  } else {
+    albumDetailSearchedLinksQuery = db
+      .collection("links")
+      .orderBy("createdAt", "desc")
+      .where("albumID", "==", req.body.albumID)
+      .where("searchTerms", "array-contains", searchQuery)
+      .limit(16);
+  }
+
+  albumDetailSearchedLinksQuery
+    .get()
+    .then((data) => {
+      albumDetailSearchedLinksData.links = [];
+      data.forEach((doc) => {
+        const linkObject = {
+          ...doc.data(),
+          linkID: doc.id,
+        };
+        albumDetailSearchedLinksData.links.push(linkObject);
+      });
+
+      //to get the album detail link's likes link pagination
+      if (
+        req.body.limitLikedLinks &&
+        albumDetailSearchedLinksData.links.length > 0
+      ) {
+        db.collection("likesLink")
+          .orderBy("createdAt", "desc")
+          .where("username", "==", req.user.username)
+          .where("albumID", "==", req.body.albumID)
+          .startAfter(req.body.limitLikedLinks.createdAt)
+          .limit(16)
+          .get()
+          .then((data) => {
+            albumDetailSearchedLinksData.likedLinks = [];
+            data.forEach((doc) => {
+              const likedLinkObject = {
+                ...doc.data(),
+              };
+              albumDetailSearchedLinksData.likedLinks.push(likedLinkObject);
+            });
+            console.log(albumDetailSearchedLinksData);
+            if (albumDetailSearchedLinksData.links.length > 0)
+              return res.json(albumDetailSearchedLinksData);
+            else return res.status(404).json({ message: "No Pages" });
+          })
+          .catch((error) => {
+            console.error(error);
+          });
+      } else {
+        console.log(albumDetailSearchedLinksData);
+        if (albumDetailSearchedLinksData.links.length > 0)
+          return res.json(albumDetailSearchedLinksData);
+        else return res.status(404).json({ message: "No Pages" });
+      }
+    })
+    .catch((error) => {
+      console.error(error);
+    });
 };
 
 //get one album and the album only after changes are made
@@ -541,12 +685,27 @@ exports.likeAlbum = (req, res) => {
     })
     .then((data) => {
       if (data.empty) {
+        let ownerusername = albumData.username.toLowerCase();
+        ownerusername = ownerusername.replace(/\s/g, "");
+
+        let index = 1;
+        let iterate = ownerusername.length;
+
+        if (iterate > 30) iterate = 30; //make sure maximum is 30
+
+        const searchTerm = [];
+
+        for (index; index <= iterate; index++) {
+          searchTerm.push(ownerusername.substring(0, index));
+        }
+
         return db
           .collection("likesAlbum")
           .add({
             albumID: req.params.albumID,
             username: req.user.username,
             ownerusername: albumData.username,
+            ownerusernameSearchTerms: searchTerm,
             profileImg: req.user.profileImg,
             createdAt: new Date().getTime(),
             albumCreatedAt: albumData.createdAt,

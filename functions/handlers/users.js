@@ -26,6 +26,7 @@ exports.signup = (req, res) => {
     username: req.body.username,
     fullName: req.body.fullName,
     birthday: req.body.birthday,
+    searchTerms: [],
   };
 
   const { valid, errors } = validateSignUpData(newUser);
@@ -44,6 +45,22 @@ exports.signup = (req, res) => {
 
   //set all letters in username to lowercase
   newUser.username = newUser.username.toLowerCase();
+
+  let usernameSearchTerms = newUser.username;
+  usernameSearchTerms = usernameSearchTerms.replace(/\s/g, "");
+
+  let index = 1;
+  let iterate = usernameSearchTerms.length;
+
+  if (iterate > 30) iterate = 30; //make sure maximum is 30
+
+  const searchTerm = [];
+
+  for (index; index <= iterate; index++) {
+    searchTerm.push(usernameSearchTerms.substring(0, index));
+  }
+
+  newUser.searchTerms = searchTerm;
 
   const noImg = "no-img-profile.png";
 

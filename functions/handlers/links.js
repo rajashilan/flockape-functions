@@ -137,6 +137,7 @@ exports.fetchImage = (req, res) => {
     });
 };
 
+//the route to upload the link from front end
 exports.createLinkFrontEnd = (req, res) => {
   const newLink = {
     linkUrl: req.body.linkUrl,
@@ -149,6 +150,7 @@ exports.createLinkFrontEnd = (req, res) => {
     profileImg: req.user.profileImg,
     likeCount: 0,
     createdAt: new Date().getTime(),
+    searchTerms: [],
   };
 
   const validateData = {
@@ -167,6 +169,22 @@ exports.createLinkFrontEnd = (req, res) => {
         if (newLink.username == doc.data().username) {
           //add the link security the same as the album's
           newLink.security = doc.data().security;
+
+          let linkTitle = newLink.linkTitle.toLowerCase();
+          linkTitle = linkTitle.replace(/\s/g, "");
+
+          let index = 1;
+          let iterate = linkTitle.length;
+
+          if (iterate > 30) iterate = 30; //make sure maximum is 30
+
+          const searchTerm = [];
+
+          for (index; index <= iterate; index++) {
+            searchTerm.push(linkTitle.substring(0, index));
+          }
+
+          newLink.searchTerms = searchTerm;
 
           db.collection("links")
             .add(newLink)
@@ -230,12 +248,28 @@ exports.likeLink = (req, res) => {
 
         linkData.searchTerms = searchTerm;
 
+        let ownerusername = linkData.username.toLowerCase();
+        ownerusername = ownerusername.replace(/\s/g, "");
+
+        let indexUsername = 1;
+        let iterateUsername = ownerusername.length;
+
+        if (iterateUsername > 30) iterateUsername = 30; //make sure maximum is 30
+
+        const searchTermUsername = [];
+
+        for (indexUsername; indexUsername <= iterateUsername; indexUsername++) {
+          searchTermUsername.push(ownerusername.substring(0, indexUsername));
+        }
+
         return db
           .collection("likesLink")
           .add({
             linkID: req.params.linkID,
             albumID: req.body.albumID,
             username: req.user.username,
+            ownerusername: linkData.username,
+            ownerusernameSearchTerms: searchTermUsername,
             createdAt: new Date().getTime(),
             profileImg: req.user.profileImg,
             linkCreatedAt: linkData.createdAt,
@@ -426,44 +460,117 @@ exports.getSearchedLikedLinks = (req, res) => {
     .then((linkID) => {
       //if there are no liked links id, there are no liked links for the user, so return
       if (linkID.length == 0) {
-        console.log("404");
-        return res.status(404).json({ message: "No liked pages" });
-      }
+        //query using owner's username first before responding with 404
 
-      //linkID has the blueprint to how the links should actually be arranged
-      for (let [indexForEach, id] of linkID.entries()) {
-        //get the index of the current loop
-        //so that the link will be stored at the correct index in the array
-        let tempIndex = indexForEach;
-        db.doc(`/links/${id.linkID}`)
+        let likedLinksQueryOwnerusernameSearch;
+
+        if (req.body.limit) {
+          likedLinksQueryOwnerusernameSearch = db
+            .collection("likesLink")
+            .where("username", "==", req.user.username)
+            .where("ownerusernameSearchTerms", "array-contains", searchQuery)
+            .orderBy("createdAt", "desc")
+            .startAfter(req.body.limit.linkDocCreatedAt)
+            .limit(16);
+        } else
+          likedLinksQueryOwnerusernameSearch = db
+            .collection("likesLink")
+            .where("username", "==", req.user.username)
+            .where("ownerusernameSearchTerms", "array-contains", searchQuery)
+            .orderBy("createdAt", "desc")
+            .limit(16);
+
+        likedLinksQueryOwnerusernameSearch
           .get()
-          .then((doc) => {
-            if (
-              doc.data().security == "private" &&
-              doc.data().username !== req.user.username
-            ) {
-              //dont push anything
-            } else {
-              links[tempIndex] = {
-                linkID: doc.id,
-                linkTitle: doc.data().linkTitle,
-                linkDesc: doc.data().linkDesc,
-                linkImg: doc.data().linkImg,
-                linkUrl: doc.data().linkUrl,
-                username: doc.data().username,
-                likeCount: doc.data().likeCount,
-                createdAt: doc.data().createdAt,
-                security: doc.data().security,
-                linkDocCreatedAt: id.linkDocCreatedAt,
-                albumID: doc.data().albumID,
-              };
-            }
-            index++;
+          .then((data) => {
+            data.forEach((doc) => {
+              likedLinksID.push({
+                linkID: doc.data().linkID,
+                linkDocCreatedAt: doc.data().createdAt,
+              });
+            });
+
+            return likedLinksID;
           })
-          .then(() => {
-            //return only after reaching the end of the for loop
-            if (index == linkID.length) return res.json(links);
+          .then((linkID) => {
+            if (linkID.length == 0) {
+              //if still empty, return 404
+              console.log("404");
+              return res.status(404).json({ message: "No liked pages" });
+            }
+
+            //linkID has the blueprint to how the links should actually be arranged
+            for (let [indexForEach, id] of linkID.entries()) {
+              //get the index of the current loop
+              //so that the link will be stored at the correct index in the array
+              let tempIndex = indexForEach;
+              db.doc(`/links/${id.linkID}`)
+                .get()
+                .then((doc) => {
+                  if (
+                    doc.data().security == "private" &&
+                    doc.data().username !== req.user.username
+                  ) {
+                    //dont push anything
+                  } else {
+                    links[tempIndex] = {
+                      linkID: doc.id,
+                      linkTitle: doc.data().linkTitle,
+                      linkDesc: doc.data().linkDesc,
+                      linkImg: doc.data().linkImg,
+                      linkUrl: doc.data().linkUrl,
+                      username: doc.data().username,
+                      likeCount: doc.data().likeCount,
+                      createdAt: doc.data().createdAt,
+                      security: doc.data().security,
+                      linkDocCreatedAt: id.linkDocCreatedAt,
+                      albumID: doc.data().albumID,
+                    };
+                  }
+                  index++;
+                })
+                .then(() => {
+                  //return only after reaching the end of the for loop
+                  if (index == linkID.length) return res.json(links);
+                });
+            }
           });
+      } else {
+        //linkID has the blueprint to how the links should actually be arranged
+        for (let [indexForEach, id] of linkID.entries()) {
+          //get the index of the current loop
+          //so that the link will be stored at the correct index in the array
+          let tempIndex = indexForEach;
+          db.doc(`/links/${id.linkID}`)
+            .get()
+            .then((doc) => {
+              if (
+                doc.data().security == "private" &&
+                doc.data().username !== req.user.username
+              ) {
+                //dont push anything
+              } else {
+                links[tempIndex] = {
+                  linkID: doc.id,
+                  linkTitle: doc.data().linkTitle,
+                  linkDesc: doc.data().linkDesc,
+                  linkImg: doc.data().linkImg,
+                  linkUrl: doc.data().linkUrl,
+                  username: doc.data().username,
+                  likeCount: doc.data().likeCount,
+                  createdAt: doc.data().createdAt,
+                  security: doc.data().security,
+                  linkDocCreatedAt: id.linkDocCreatedAt,
+                  albumID: doc.data().albumID,
+                };
+              }
+              index++;
+            })
+            .then(() => {
+              //return only after reaching the end of the for loop
+              if (index == linkID.length) return res.json(links);
+            });
+        }
       }
     })
     .catch((error) => {

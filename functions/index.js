@@ -23,6 +23,7 @@ const {
   getLikesAlbumGeneralPagination,
   getLikesAlbumUserPagination,
   deleteAlbum,
+  searchAnAlbumDetailLinks,
 } = require("./handlers/albums");
 const {
   getAllLinks,
@@ -74,6 +75,7 @@ app.use(cors());
 app.post("/albums", DBAuth, getAllAlbums); //gets all the albums for the user
 app.post("/searchAlbums", DBAuth, searchAllAlbums); //user searches for all their own albums
 app.post("/searchLikedAlbums", DBAuth, searchLikedAlbums); //user searches for their liked albums
+app.post("/searchAlbumDetailLinks", DBSelectedAuth, searchAnAlbumDetailLinks);
 app.post("/album/:albumID", DBAuth, editAlbumDetails); //edit album details
 app.get("/album/:albumID", DBSelectedAuth, getAnAlbum); //get a particular album and its links
 app.post("/albumDetailLinks/:albumID", DBSelectedAuth, getAnAlbumDetailLinks); //get the links pagination for an album detail
