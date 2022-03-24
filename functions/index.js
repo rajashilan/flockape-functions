@@ -52,6 +52,8 @@ const {
   changePassword,
 } = require("./handlers/users");
 
+const { submitFeedback } = require("./handlers/admin_work");
+
 const DBAuth = require("./util/dbAuth");
 const DBSelectedAuth = require("./util/dbSelectedAuth");
 const dbAuth = require("./util/dbAuth");
@@ -119,6 +121,7 @@ app.post("/searchUser", searchUsers);
 app.post("/notifications", DBAuth, markNotificationsRead);
 app.post("/password/reset", resetPassword); //forgot password
 app.post("/password/update", DBAuth, changePassword); //update password
+app.post("/submitFeedback", submitFeedback);
 
 exports.api = functions.region("asia-southeast1").https.onRequest(app);
 

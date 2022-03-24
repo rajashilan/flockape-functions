@@ -1,6 +1,9 @@
 const isEmpty = (string) => {
-  if (string.trim() === "") return true;
-  else return false;
+  if (!string) {
+    return true;
+  } else if (string && string.trim() === "") {
+    return true;
+  } else return false;
 };
 
 const isEmail = (email) => {
@@ -62,6 +65,25 @@ const isDate = (date) => {
       }
     }
   } else return false;
+};
+
+exports.validateFeedbackData = (data) => {
+  let errors = {};
+
+  if (isEmpty(data.email)) {
+    errors.email = "Must not be empty";
+  } else if (!isEmail(data.email)) {
+    errors.email = "Must be a valid email address";
+  }
+
+  if (isEmpty(data.message)) {
+    errors.message = "Oops, seems like you've forgot to add your feedback.";
+  }
+
+  return {
+    errors,
+    valid: Object.keys(errors).length === 0 ? true : false,
+  };
 };
 
 exports.validateSignUpData = (data) => {
